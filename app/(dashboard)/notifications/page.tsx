@@ -173,51 +173,55 @@ export default function PushNotificationsPage() {
       {/* Simple Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Create Notification</h2>
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl border border-slate-100">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-slate-900">Create Push Notification</h2>
+                <p className="text-sm text-slate-500 mt-1">Send a notification to all app users or schedule it for later</p>
+              </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-slate-400 hover:text-slate-600 transition-colors mt-0.5"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Title</label>
-                <Input {...register("title")} placeholder="e.g. App Update" />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-900">Notification Title *</label>
+                <Input 
+                  {...register("title")} 
+                  placeholder="e.g., New Feature Available" 
+                  className="bg-slate-50 border-0 h-11 focus-visible:ring-1 focus-visible:ring-slate-300 placeholder:text-slate-400"
+                />
                 {errors.title && <p className="text-xs text-red-500">{errors.title.message}</p>}
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Message</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-900">Message *</label>
                 <textarea 
                   {...register("message")} 
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Notification content..."
+                  className="flex min-h-[100px] w-full rounded-md bg-slate-50 px-3 py-3 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 resize-none"
+                  placeholder="Enter your notification message..."
                 />
                 {errors.message && <p className="text-xs text-red-500">{errors.message.message}</p>}
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Recipients (approx)</label>
-                <Input type="number" {...register("recipients")} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Status</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-900">Action</label>
                 <select 
                   {...register("status")}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
+                  className="flex h-11 w-full rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em' }}
                 >
-                  <option value="draft">Draft</option>
-                  <option value="scheduled">Scheduled</option>
-                  <option value="sent">Sent</option>
+                  <option value="sent">Send Now</option>
+                  <option value="scheduled">Schedule</option>
+                  <option value="draft">Save as Draft</option>
                 </select>
               </div>
-              <div className="pt-2 flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+              <div className="pt-4 flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="rounded-lg font-medium">
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-slate-950 text-white">Save</Button>
+                <Button type="submit" className="bg-[#0B0F19] hover:bg-slate-800 text-white rounded-lg font-medium">Send Now</Button>
               </div>
             </form>
           </div>
