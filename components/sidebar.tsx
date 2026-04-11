@@ -20,8 +20,8 @@ export function Sidebar() {
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-white">
       <div className="p-6">
-        <h1 className="text-2xl font-bold tracking-tight text-emerald-900 leading-tight">QURAN</h1>
-        <h2 className="text-[10px] font-bold tracking-[0.2em] text-emerald-800">INTERNATIONAL</h2>
+        <h1 className="text-2xl font-black tracking-tight text-emerald-900 leading-tight font-helvetica">QURAN</h1>
+        <h2 className="text-[10px] font-bold tracking-[0.2em] text-emerald-800 font-helvetica">INTERNATIONAL</h2>
       </div>
 
       <nav className="flex-1 space-y-1 p-4">
