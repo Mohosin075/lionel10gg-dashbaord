@@ -225,51 +225,69 @@ export default function LanguageSettingsPage() {
       {/* Simple Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Add New Language</h2>
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl border border-slate-100">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-slate-900">Add New Language</h2>
+                <p className="text-sm text-slate-500 mt-1">Add a new language to the app</p>
+              </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-slate-400 hover:text-slate-600 transition-colors mt-0.5"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Language Name</label>
-                <Input {...register("language")} placeholder="e.g. French" />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-900">Language Name *</label>
+                <Input 
+                  {...register("language")} 
+                  placeholder="e.g., English, Arabic, French" 
+                  className="bg-slate-50 border-0 h-11 focus-visible:ring-1 focus-visible:ring-slate-300 placeholder:text-slate-400"
+                />
                 {errors.language && <p className="text-xs text-red-500">{errors.language.message}</p>}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Code</label>
-                  <Input {...register("code")} placeholder="e.g. fr" maxLength={3} />
-                  {errors.code && <p className="text-xs text-red-500">{errors.code.message}</p>}
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Direction</label>
-                  <select 
-                    {...register("direction")}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
-                  >
-                    <option value="LTR">LTR</option>
-                    <option value="RTL">RTL</option>
-                  </select>
-                </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-900">Language Code *</label>
+                <Input 
+                  {...register("code")} 
+                  placeholder="e.g., en, ar, fr" 
+                  maxLength={3} 
+                  className="bg-slate-50 border-0 h-11 focus-visible:ring-1 focus-visible:ring-slate-300 placeholder:text-slate-400"
+                />
+                {errors.code && <p className="text-xs text-red-500">{errors.code.message}</p>}
               </div>
-              <div className="flex items-center justify-between pt-2">
-                <label className="text-sm font-medium text-slate-700">Enable Language</label>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-900">Text Direction</label>
+                <select 
+                  {...register("direction")}
+                  className="flex h-11 w-full rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em' }}
+                >
+                  <option value="LTR">Left to Right (LTR)</option>
+                  <option value="RTL">Right to Left (RTL)</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center justify-between mt-2 p-4 rounded-xl bg-slate-50 border border-transparent">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-medium text-slate-900">Enable Language</label>
+                  <p className="text-sm text-slate-500">Make this language available in the app</p>
+                </div>
                 <Switch 
                   checked={statusValue} 
                   onCheckedChange={(val) => setValue("status", val)} 
                 />
               </div>
-              <div className="pt-4 flex justify-end gap-2 border-t mt-4">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+
+              <div className="pt-4 flex justify-end gap-3 mt-4">
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="rounded-lg font-medium">
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-slate-950 text-white">Save</Button>
+                <Button type="submit" className="bg-[#0B0F19] hover:bg-slate-800 text-white rounded-lg font-medium">Add Language</Button>
               </div>
             </form>
           </div>
