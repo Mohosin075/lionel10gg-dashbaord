@@ -33,8 +33,8 @@ export function Sidebar() {
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-colors cursor-pointer",
-                isActive 
-                  ? "bg-emerald-900 text-white" 
+                isActive
+                  ? "bg-emerald-900 text-white"
                   : "text-slate-500 hover:bg-slate-100"
               )}
             >
@@ -51,10 +51,10 @@ export function Sidebar() {
         </button>
         <div className="flex items-center gap-3 px-2">
           <div className="h-10 w-10 overflow-hidden rounded-full bg-slate-200">
-            <img 
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" 
-              alt="Admin" 
-              className="h-full w-full object-cover" 
+            <img
+              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
+              alt="Admin"
+              className="h-full w-full object-cover"
             />
           </div>
           <div className="flex flex-col">

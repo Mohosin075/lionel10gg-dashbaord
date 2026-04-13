@@ -1,18 +1,27 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Users, Activity, Download, MousePointerClick } from "lucide-react"
+import DashboardStatsCard from "@/components/dashbaord/dash-home/dashboard-stats-card"
+import { StatsCard } from "@/components/shared/stats-card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  dashboardCards,
   monthlyActiveUsers,
-  mostViewedTranslations,
-  mostSearchedVerses,
   mostBookmarkedVerses,
+  mostSearchedVerses,
+  mostViewedTranslations
 } from "@/lib/dummy-data"
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-  BarChart, Bar
+import { Activity, Clock, Download, FileText, MousePointerClick, Send, Users } from "lucide-react"
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell, Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis, YAxis
 } from "recharts"
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -22,7 +31,17 @@ const iconMap: Record<string, React.ReactNode> = {
   "Daily Active Users": <MousePointerClick className="h-4 w-4 text-slate-400" />
 }
 
+const dashboardCards = [
+  { title: "Total Users", icon: <Users className="h-4 w-4 text-slate-400" />, value: "45,230", trend: "+12.5%", isPositive: true },
+  { title: "Active Users (7d)", icon: <Activity className="h-4 w-4 text-slate-400" />, value: "28,450", trend: "+8.3%", isPositive: true },
+  { title: "App Downloads", icon: <Download className="h-4 w-4 text-slate-400" />, value: "52,100", trend: "+15.7%", isPositive: true },
+  { title: "Daily Active Users", icon: <MousePointerClick className="h-4 w-4 text-slate-400" />, value: "12,340", trend: "+5.2%", isPositive: true },
+];
+
 export default function DashboardPage() {
+
+
+
   return (
     <div className="space-y-6">
       <div>
@@ -30,25 +49,7 @@ export default function DashboardPage() {
         <p className="text-sm text-slate-500">Track user activity and engagement metrics</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {dashboardCards.map((card) => (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">{card.title}</CardTitle>
-              {iconMap[card.title]}
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
-              <p className={`text-xs ${card.isPositive ? 'text-emerald-500' : 'text-red-500'} flex items-center gap-1 mt-1`}>
-                {card.trend.startsWith('+') ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trending-up h-3 w-3"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                ) : null}
-                {card.trend}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <DashboardStatsCard stats={dashboardCards} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         <Card>
@@ -63,7 +64,7 @@ export default function DashboardPage() {
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} domain={[0, 60000]} ticks={[0, 15000, 30000, 45000, 60000]} />
                 <Tooltip />
                 <Line type="monotone" dataKey="users" stroke="#22c55e" strokeWidth={2} dot={{ r: 4, fill: "#fff", stroke: "#22c55e" }} activeDot={{ r: 6 }} name="Active Users" />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -83,8 +84,8 @@ export default function DashboardPage() {
                   innerRadius={0}
                   outerRadius={80}
                   dataKey="value"
-                  label={({ name, value, index }) => 
-                     name 
+                  label={({ name, value, index }) =>
+                    name
                   }
                   labelLine={false}
                 >
@@ -105,12 +106,12 @@ export default function DashboardPage() {
             <CardTitle className="text-base">Most Searched Verses</CardTitle>
           </CardHeader>
           <CardContent className="h-[250px]">
-             <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart layout="vertical" data={mostSearchedVerses} margin={{ top: 5, right: 10, left: 30, bottom: 0 }} barSize={20}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={true} stroke="#f1f5f9" />
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} domain={[0, 16000]} ticks={[0, 4000, 8000, 12000, 16000]} />
                 <YAxis type="category" dataKey="verse" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                <Tooltip cursor={{fill: 'transparent'}} />
+                <Tooltip cursor={{ fill: 'transparent' }} />
                 <Bar dataKey="searches" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -122,12 +123,12 @@ export default function DashboardPage() {
             <CardTitle className="text-base">Most Bookmarked Verses</CardTitle>
           </CardHeader>
           <CardContent className="h-[250px]">
-             <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart layout="vertical" data={mostBookmarkedVerses} margin={{ top: 5, right: 10, left: 30, bottom: 0 }} barSize={20}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={true} stroke="#f1f5f9" />
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} domain={[0, 10000]} ticks={[0, 2500, 5000, 7500, 10000]} />
                 <YAxis type="category" dataKey="verse" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                <Tooltip cursor={{fill: 'transparent'}} />
+                <Tooltip cursor={{ fill: 'transparent' }} />
                 <Bar dataKey="bookmarks" fill="#f59e0b" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>

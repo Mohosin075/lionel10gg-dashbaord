@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { StatsCard } from "@/components/shared/stats-card"
 
 const notificationSchema = z.object({
   title: z.string().min(2, "Title is required"),
@@ -34,6 +35,44 @@ const initialData = [
   { id: 3, title: "App Update v2.5", message: "New features and improvements in the latest update", date: "2026-03-15", recipients: "18,500", status: "sent" as const },
   { id: 4, title: "Weekend Reminder", message: "Don't forget to complete your daily reading goal", date: "—", recipients: "—", status: "draft" as const },
 ]
+
+
+const stats = [
+  {
+    title: "Sent Notifications",
+    value: 10,
+    key: "sent",
+    icon: Send,
+    iconBg: "bg-emerald-100",
+    iconColor: "text-emerald-600",
+  },
+  {
+    title: "Scheduled",
+    value: 10,
+    key: "scheduled",
+    icon: Clock,
+    iconBg: "bg-blue-100",
+    iconColor: "text-blue-600",
+  },
+  {
+    title: "Drafts",
+    value: 10,
+    key: "draft",
+    icon: FileText,
+    iconBg: "bg-slate-100",
+    iconColor: "text-slate-600",
+  },
+  {
+    title: "Drafts",
+    value: 10,
+    key: "draft",
+    icon: FileText,
+    iconBg: "bg-slate-100",
+    iconColor: "text-slate-600",
+  },
+
+];
+
 
 export default function PushNotificationsPage() {
   const [data, setData] = useState(initialData)
@@ -103,41 +142,7 @@ export default function PushNotificationsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border bg-white p-6 shadow-sm flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-            <Send className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Sent Notifications</p>
-            <p className="text-2xl font-semibold text-slate-900">
-              {data.filter((d) => d.status === "sent").length}
-            </p>
-          </div>
-        </div>
-        <div className="rounded-xl border bg-white p-6 shadow-sm flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-            <Clock className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Scheduled</p>
-            <p className="text-2xl font-semibold text-slate-900">
-              {data.filter((d) => d.status === "scheduled").length}
-            </p>
-          </div>
-        </div>
-        <div className="rounded-xl border bg-white p-6 shadow-sm flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-            <FileText className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Drafts</p>
-            <p className="text-2xl font-semibold text-slate-900">
-              {data.filter((d) => d.status === "draft").length}
-            </p>
-          </div>
-        </div>
-      </div>
+      <StatsCard data={stats} />
 
       {/* Table Section */}
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
@@ -179,7 +184,7 @@ export default function PushNotificationsPage() {
                 <h2 className="text-xl font-semibold tracking-tight text-slate-900">Create Push Notification</h2>
                 <p className="text-sm text-slate-500 mt-1">Send a notification to all app users or schedule it for later</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 transition-colors mt-0.5"
               >
@@ -189,17 +194,17 @@ export default function PushNotificationsPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-900">Notification Title *</label>
-                <Input 
-                  {...register("title")} 
-                  placeholder="e.g., New Feature Available" 
+                <Input
+                  {...register("title")}
+                  placeholder="e.g., New Feature Available"
                   className="bg-slate-50 border-0 h-11 focus-visible:ring-1 focus-visible:ring-slate-300 placeholder:text-slate-400"
                 />
                 {errors.title && <p className="text-xs text-red-500">{errors.title.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-900">Message *</label>
-                <textarea 
-                  {...register("message")} 
+                <textarea
+                  {...register("message")}
                   className="flex min-h-[100px] w-full rounded-md bg-slate-50 px-3 py-3 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 resize-none"
                   placeholder="Enter your notification message..."
                 />
@@ -207,7 +212,7 @@ export default function PushNotificationsPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-900">Action</label>
-                <select 
+                <select
                   {...register("status")}
                   className="flex h-11 w-full rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 appearance-none"
                   style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em' }}
