@@ -8,21 +8,47 @@ import { Search, MoreVertical } from "lucide-react"
 import { usersTableData } from "@/lib/dummy-data"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { StatsCard } from "@/components/shared/stats-card"
 
 export default function UsersPage() {
   const [search, setSearch] = useState("")
 
-  const filteredUsers = usersTableData.filter(user => 
-    user.name.toLowerCase().includes(search.toLowerCase()) || 
+  const filteredUsers = usersTableData.filter(user =>
+    user.name.toLowerCase().includes(search.toLowerCase()) ||
     user.email.toLowerCase().includes(search.toLowerCase())
   )
 
-  const stats = [
-    { title: "Total Users", value: "5", titleColor: "text-slate-500", valueColor: "text-slate-900" },
-    { title: "Active Users", value: "3", titleColor: "text-slate-500", valueColor: "text-emerald-500" },
-    { title: "Restricted Users", value: "1", titleColor: "text-slate-500", valueColor: "text-amber-500" },
-    { title: "Banned Users", value: "1", titleColor: "text-slate-500", valueColor: "text-red-500" },
-  ]
+
+  const userStats = [
+    {
+      title: "Total Users",
+      value: 5,
+      trend: null,
+      isPositive: null,
+      color: "text-slate-900",
+    },
+    {
+      title: "Active Users",
+      value: 3,
+      trend: null,
+      isPositive: true,
+      color: "text-emerald-500",
+    },
+    {
+      title: "Restricted Users",
+      value: 1,
+      trend: null,
+      isPositive: false,
+      color: "text-amber-500",
+    },
+    {
+      title: "Banned Users",
+      value: 1,
+      trend: null,
+      isPositive: false,
+      color: "text-red-500",
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -31,7 +57,7 @@ export default function UsersPage() {
         <p className="text-sm text-slate-500">View and manage user registration details</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.title}>
             <CardContent className="p-6">
@@ -40,7 +66,9 @@ export default function UsersPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </div> */}
+
+      <StatsCard data={userStats} />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-5 px-6 border-b border-slate-100">
