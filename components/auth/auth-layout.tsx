@@ -1,6 +1,8 @@
 "use client";
 
 import bgImg from "@/public/auth-bg.png";
+import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 interface AuthLayoutProps {
@@ -8,12 +10,13 @@ interface AuthLayoutProps {
 }
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex">
-      <div className="flex-1 lg:w-1/2 flex items-center justify-center p-8">
+    <div className=" flex" style={{ height: "calc(100vh - 40px)" }}>
+      <div className="flex-1 w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-lg ">
           {/* Logo */}
-          {/* <div className="shrink-0">
-            <Link href="/" className="lg:hidden">
+          <div className="shrink-0">
+            <Link href="/" className="
+            ">
               <Image
                 src={require("@/public/logo.png")}
                 alt="Dashboard Logo"
@@ -22,7 +25,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
                 className="w-72 h-auto mx-auto "
               />
             </Link>
-          </div> */}
+          </div>
           {children}
         </div>
       </div>
@@ -33,6 +36,8 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           background: `url(${bgImg.src})`,
           backgroundPosition: "center",
           backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
+          height: "100vh",
         }}
       ></div>
     </div>

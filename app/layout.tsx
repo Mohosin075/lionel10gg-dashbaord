@@ -3,6 +3,8 @@ import { Inter, Geist } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ReduxProvider } from "@/redux/ReduxProvider";
+
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -52,7 +54,12 @@ export default function RootLayout({
       lang="en"
       className={cn("h-full", "antialiased", inter.variable, helveticaNeue.variable, "font-sans", geist.variable)}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <ReduxProvider>
+
+        {children}
+        </ReduxProvider>
+        </body>
     </html>
   );
 }
