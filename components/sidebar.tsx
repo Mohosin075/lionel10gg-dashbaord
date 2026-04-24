@@ -12,6 +12,7 @@ import {
   Globe,
   LogOut,
 } from "lucide-react";
+import Image from "next/image";
 
 const navItems = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -26,14 +27,9 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-white">
-      <div className="p-6">
-        <h1 className="text-2xl font-black tracking-tight text-emerald-900 leading-tight font-helvetica">
-          QURAN
-        </h1>
-        <h2 className="text-[10px] font-bold tracking-[0.2em] text-emerald-800 font-helvetica">
-          INTERNATIONAL
-        </h2>
+    <div className="flex h-[calc(100vh-40px)] w-72 flex-col bg-white rounded-2xl shadow">
+      <div className="w-52 h-auto mx-auto py-5">        
+        <Image src={require("@/public/logo.png")} className="w-full" alt="Quran" width={500} height={500} />
       </div>
 
       <nav className="flex-1 space-y-1 p-4">
