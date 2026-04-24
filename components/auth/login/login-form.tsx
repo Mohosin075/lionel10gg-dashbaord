@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
-type LoginFormValues = {
+type FormValues = {
   email: string;
   password: string;
   remember: boolean;
@@ -18,7 +18,7 @@ export default function LoginForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({
+  } = useForm<FormValues>({
     defaultValues: {
       email: "",
       password: "",
@@ -26,13 +26,13 @@ export default function LoginForm() {
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
+  const onSubmit = (data: FormValues) => {
     toast.success("Login submitted");
     console.log(data);
   };
 
   return (
-    <div className="w-full  rounded-lg bg-white md:px-8 py-10 ">
+    <div className="w-full rounded-lg bg-white md:px-8 py-10 ">
       {/* Title */}
       <h1 className="text-3xl font-semibold text-gray-900">
         Admin Login

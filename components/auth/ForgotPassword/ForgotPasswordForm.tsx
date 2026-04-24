@@ -6,27 +6,21 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-type LoginFormValues = {
+type ForgotPasswordFormValues = {
   email: string;
-  password: string;
-  remember: boolean;
 };
-
 
 export default function ForgotPasswordForm() {
    const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormValues>({
+  } = useForm<ForgotPasswordFormValues>({
     defaultValues: {
-      email: "",
-      password: "",
-      remember: false,
+      email: "",      
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
+  const onSubmit = (data: ForgotPasswordFormValues) => {
     toast.success("Login submitted");
     console.log(data);
   };
