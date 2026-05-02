@@ -5,11 +5,22 @@ import { Input } from "@/components/ui/input";
 import { useEffect, useRef, useState } from "react";
 
 
+import { useVerifyOtpMutation, useResendOtpMutation } from "@/redux/features/auth/authApi";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+
+
 export default function OtpVerify() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") || "";
+
   const [otp, setOtp] = useState(Array(6).fill(""));
-  const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const [verifyOtp, { isLoading: isVerifying }] = useVerifyOtpMutation();
+  const [resendOtp, { isLoading: isResending }] = useResendOtpMutation();
 
   useEffect(() => {
     if (countdown > 0) {
@@ -59,17 +70,43 @@ export default function OtpVerify() {
   };
 
   const handleVerify = async () => {
-    setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    console.log("Verifying OTP:", otp.join(""));
-    setIsLoading(false);
+    try {
+      const res = await verifyOtp({
+        email,
+        oneTimeCode: otp.join(""),
+      }).unwrap();
+
+      if (res.success) {
+        toast.success(res.message || "OTP verified successfully");
+        router.push("/");
+      } else {
+        toast.error(res.message || "Invalid OTP");
+      }
+    } catch (error: any) {
+      toast.error(error.data?.message || "Something went wrong");
+    }
   };
 
-  const handleResend = () => {
-    setOtp(Array(6).fill(""));
-    setCountdown(60);
-    inputRefs.current[0]?.focus();
+  const handleResend = async () => {
+    try {
+      const res = await resendOtp({
+        email,
+        authType: "createAccount",
+      }).unwrap();
+
+      if (res.success) {
+        toast.success(res.message || "New OTP sent to your email");
+        setOtp(Array(6).fill(""));
+        setCountdown(60);
+        inputRefs.current[0]?.focus();
+      } else {
+        toast.error(res.message || "Failed to resend OTP");
+      }
+    } catch (error: any) {
+      toast.error(error.data?.message || "Something went wrong");
+    }
   };
+
 
   const isComplete = otp.every(Boolean);
 
@@ -108,10 +145,10 @@ export default function OtpVerify() {
         {/* Verify Button */}
         <Button
           onClick={handleVerify}
-          disabled={!isComplete || isLoading}
+          disabled={!isComplete || isVerifying}
           className="h-14 text-lg w-full rounded-lg bg-[#0F3D2E] text-white hover:bg-[#0c3326] mb-4"
         >
-          {isLoading ? "Verifying..." : "Verify OTP code"}
+          {isVerifying ? "Verifying..." : "Verify OTP code"}
         </Button>
 
         {/* Resend */}
@@ -127,10 +164,11 @@ export default function OtpVerify() {
             </p>
             <Button
               onClick={handleResend}
+              disabled={isResending}
               variant="link"
               className="text-base text-red-500 font-medium"
             >
-              Resend
+              {isResending ? "Resending..." : "Resend"}
             </Button>
           </div>
         )}

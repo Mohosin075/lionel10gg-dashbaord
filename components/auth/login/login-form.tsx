@@ -7,16 +7,28 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
+import { useLoginUserMutation } from "@/redux/features/auth/authApi";
+import { useRouter } from "next/navigation";
+import { setUser } from "@/redux/slice/userSlice";
+import { useDispatch } from "react-redux";
+
 type FormValues = {
   email: string;
   password: string;
-  remember: boolean;
+  remember: true | false
 };
 
 export default function LoginForm() {
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [loginUser, { isLoading }] = useLoginUserMutation();
+
+
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
@@ -26,10 +38,29 @@ export default function LoginForm() {
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    toast.success("Login submitted");
-    console.log(data);
+  const remember = watch("remember");
+
+  const onSubmit = async (data: FormValues) => {
+    console.log("data",data)
+    try {
+      const res = await loginUser({
+        email: data.email,
+        password: data.password,
+        rememberMe: data.remember,
+      }).unwrap();
+
+      if (res.success) {
+        toast.success(res.message || "Login successful");
+        dispatch(setUser(res.data));
+        router.push("/");
+      } else {
+        toast.error(res.message || "Login failed");
+      }
+    } catch (error: any) {
+      toast.error(error.data?.message || "Something went wrong");
+    }
   };
+
 
   return (
     <div className="w-full rounded-lg bg-white md:px-8 py-10 ">
@@ -78,17 +109,22 @@ export default function LoginForm() {
         {/* Remember + Forgot */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Checkbox id="remember" {...register("remember")} />
-            <Label
-              htmlFor="remember"
-              className="text-base text-gray-600"
-            >
-              Remember for 30 days
-            </Label>
+            <Checkbox
+    id="remember"
+    checked={watch("remember")}
+    onCheckedChange={(value) => setValue("remember", !!value)}
+  />
+  <Label
+    htmlFor="remember"
+    className="text-base text-gray-600"
+  >
+    Remember for 30 days
+  </Label>
           </div>
 
           <button
             type="button"
+            onClick={() => router.push("/forgot-password")}
             className="text-base text-blue-600 hover:underline"
           >
             forgot password
@@ -98,9 +134,10 @@ export default function LoginForm() {
         {/* Button */}
         <Button
           type="submit"
+          disabled={isLoading || !remember}
           className="mt-2 h-14 text-lg w-full rounded-lg bg-[#0F3D2E] text-white hover:bg-[#0c3326]"
         >
-          Login
+          {isLoading ? "Logging in..." : "Login"}
         </Button>
       </form>
     </div>

@@ -6,12 +6,18 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { useForgetPasswordMutation } from "@/redux/features/auth/authApi";
+import { useRouter } from "next/navigation";
+
 type ForgotPasswordFormValues = {
   email: string;
 };
 
 export default function ForgotPasswordForm() {
-   const {
+  const router = useRouter();
+  const [forgetPassword, { isLoading }] = useForgetPasswordMutation();
+
+  const {
     register,
     handleSubmit,
   } = useForm<ForgotPasswordFormValues>({
@@ -20,10 +26,20 @@ export default function ForgotPasswordForm() {
     },
   });
 
-  const onSubmit = (data: ForgotPasswordFormValues) => {
-    toast.success("Login submitted");
-    console.log(data);
+  const onSubmit = async (data: ForgotPasswordFormValues) => {
+    try {
+      const res = await forgetPassword({ email: data.email }).unwrap();
+      if (res.success) {
+        toast.success(res.message || "OTP sent to your email");
+        router.push(`/otp-verify?email=${encodeURIComponent(data.email)}`);
+      } else {
+        toast.error(res.message || "Failed to send OTP");
+      }
+    } catch (error: any) {
+      toast.error(error.data?.message || "Something went wrong");
+    }
   };
+
 
   return (
     <div className="w-full  rounded-lg bg-white md:px-8 py-10 ">
@@ -58,9 +74,10 @@ export default function ForgotPasswordForm() {
         {/* Button */}
         <Button
           type="submit"
+          disabled={isLoading}
           className="mt-2 h-14 text-lg w-full rounded-lg bg-[#0F3D2E] text-white hover:bg-[#0c3326]"
         >
-          Next
+          {isLoading ? "Sending..." : "Next"}
         </Button>
       </form>
     </div>
