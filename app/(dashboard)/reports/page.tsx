@@ -1,12 +1,8 @@
 "use client";
 
+import { StatsCard } from "@/components/shared/stats-card";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   Select,
@@ -40,26 +36,30 @@ export default function ReportsPage() {
     {
       title: "Active Users",
       value: "28,450",
-      icon: <Activity className="h-5 w-5 text-blue-500" />,
+      icon: Activity,
       iconBg: "bg-blue-50",
+      iconColor: "text-blue-500",
     },
     {
       title: "Total Downloads",
       value: "52,100",
-      icon: <Download className="h-5 w-5 text-emerald-500" />,
+      icon: Download,
       iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-500",
     },
     {
       title: "New Users (7d)",
       value: "3,495",
-      icon: <Calendar className="h-5 w-5 text-purple-500" />,
+      icon: Calendar,
       iconBg: "bg-purple-50",
+      iconColor: "text-purple-500",
     },
     {
       title: "Avg. Session Time",
       value: "12m",
-      icon: <FileText className="h-5 w-5 text-orange-500" />,
+      icon: FileText,
       iconBg: "bg-orange-50",
+      iconColor: "text-orange-500",
     },
   ];
 
@@ -71,6 +71,8 @@ export default function ReportsPage() {
           Generate and download usage statistics and analytics reports
         </p>
       </div>
+
+      <StatsCard data={cards} />
 
       <Card>
         <CardHeader className="pb-3 text-base font-semibold">
@@ -121,20 +123,6 @@ export default function ReportsPage() {
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {cards.map((card) => (
-          <Card key={card.title}>
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${card.iconBg}`}>{card.icon}</div>
-              <div>
-                <div className="text-sm text-slate-500 mb-1">{card.title}</div>
-                <div className="text-2xl font-semibold">{card.value}</div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
