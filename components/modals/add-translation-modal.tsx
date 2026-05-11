@@ -134,9 +134,9 @@ export default function AddTranslationModal({ isOpen, onClose }: Props) {
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-none w-auto">
         {/* Overlay-style container (same as your design) */}
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
+        <div className="w-full fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
           {/* Modal Box */}
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl border border-slate-100">
+          <div className="min-w-xl rounded-xl bg-white p-6 shadow-xl border border-slate-100">
             {/* Header */}
             <div className="flex items-start justify-between mb-6">
               <div>

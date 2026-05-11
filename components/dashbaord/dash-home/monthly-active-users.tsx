@@ -1,17 +1,11 @@
 "use client"
 
-import DashboardStatsCard from "@/components/dashbaord/dash-home/dashboard-stats-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   monthlyActiveUsers,
-  mostBookmarkedVerses,
-  mostSearchedVerses,
   mostViewedTranslations
 } from "@/lib/dummy-data"
-import { Activity, Download, MousePointerClick, Users } from "lucide-react"
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Cell, Legend,
   Line,
