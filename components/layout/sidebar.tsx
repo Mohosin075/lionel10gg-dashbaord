@@ -6,21 +6,14 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Users,
-  FileText,
-  Bell,
   BarChart2,
-  Globe,
-  LogOut,
 } from "lucide-react";
 import Image from "next/image";
 
 const navItems = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard },
   { title: "User Management", href: "/users", icon: Users },
-  { title: "Content Management", href: "/content", icon: FileText },
-  { title: "Push Notifications", href: "/notifications", icon: Bell },
   { title: "Reports", href: "/reports", icon: BarChart2 },
-  { title: "Language Settings", href: "/languages", icon: Globe },
 ];
 
 export function Sidebar() {

@@ -1,50 +1,48 @@
 "use client";
 
-import AllUsersTable from "@/components/dashbaord/users/all-users-table";
+import AllUsersTable from "@/components/dashboard/users/all-users-table";
+import { PageHeader } from "@/components/shared/page-header";
 import { StatsCard } from "@/components/shared/stats-card";
+import { Ban, ShieldAlert, UserCheck, Users } from "lucide-react";
+
+const userStats = [
+  {
+    title: "Total Users",
+    value: 5,
+    icon: Users,
+    iconBg: "bg-slate-50",
+    iconColor: "text-slate-900",
+  },
+  {
+    title: "Active Users",
+    value: 3,
+    icon: UserCheck,
+    iconBg: "bg-emerald-50",
+    iconColor: "text-emerald-500",
+  },
+  {
+    title: "Restricted Users",
+    value: 1,
+    icon: ShieldAlert,
+    iconBg: "bg-amber-50",
+    iconColor: "text-amber-500",
+  },
+  {
+    title: "Banned Users",
+    value: 1,
+    icon: Ban,
+    iconBg: "bg-red-50",
+    iconColor: "text-red-500",
+  },
+];
 
 export default function UsersPage() {
-  const userStats = [
-    {
-      title: "Total Users",
-      value: 5,
-      trend: null,
-      isPositive: null,
-      color: "text-slate-900",
-    },
-    {
-      title: "Active Users",
-      value: 3,
-      trend: null,
-      isPositive: true,
-      color: "text-emerald-500",
-    },
-    {
-      title: "Restricted Users",
-      value: 1,
-      trend: null,
-      isPositive: false,
-      color: "text-amber-500",
-    },
-    {
-      title: "Banned Users",
-      value: 1,
-      trend: null,
-      isPositive: false,
-      color: "text-red-500",
-    },
-  ];
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          User Management
-        </h1>
-        <p className="text-sm text-slate-500">
-          View and manage user registration details
-        </p>
-      </div>
+      <PageHeader
+        title="User Management"
+        description="View and manage user registration details"
+      />
 
       <StatsCard data={userStats} />
 
