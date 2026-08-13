@@ -23,7 +23,7 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Auth", "Pricing", "Service", "staff", "Review", "Booking", "Support", "client"],
+  tagTypes: ["Auth", "Pricing", "Service", "staff", "Review", "Booking", "Support", "client", "Knowledge", "Sheikh", "Benefit"],
   endpoints: (builder) => ({
     getProfile: builder.query<any, void>({
       query: () => "/profile",

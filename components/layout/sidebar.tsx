@@ -7,12 +7,18 @@ import {
   LayoutDashboard,
   Users,
   BarChart2,
+  BookOpen,
+  Video,
+  Award,
 } from "lucide-react";
 import Image from "next/image";
 
 const navItems = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard },
   { title: "User Management", href: "/users", icon: Users },
+  { title: "Knowledge Library", href: "/knowledge-library", icon: BookOpen },
+  { title: "Sheikh Media", href: "/sheikh-media", icon: Video },
+  { title: "Premium Benefits", href: "/premium-benefits", icon: Award },
   { title: "Reports", href: "/reports", icon: BarChart2 },
 ];
 
