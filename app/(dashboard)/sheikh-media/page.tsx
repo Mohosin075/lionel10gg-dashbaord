@@ -4,13 +4,13 @@ import React, { useState } from "react";
 import {
   useGetSheikhContentsQuery,
   useCreateSheikhContentMutation,
-  useUpdateSheikhContentMutation,
   useDeleteSheikhContentMutation,
 } from "@/redux/features/sheikhApi";
 import { Trash2, Plus, Video, Link2, ExternalLink } from "lucide-react";
 
 export default function SheikhMediaPage() {
-  const { data: sheikhContents, isLoading } = useGetSheikhContentsQuery({});
+  const { data: sheikhRes, isLoading } = useGetSheikhContentsQuery({});
+  const sheikhContents = sheikhRes?.data || [];
   const [createSheikhContent] = useCreateSheikhContentMutation();
   const [deleteSheikhContent] = useDeleteSheikhContentMutation();
 
@@ -56,7 +56,9 @@ export default function SheikhMediaPage() {
           <Video className="text-emerald-800" /> Sheikh Media Manager
         </h1>
         <p className="text-sm text-slate-500">
-          Add YouTube channel playlist links or video URLs. The backend automatically parses YouTube video/playlist IDs for the in-app player.
+          Add a YouTube watch or playlist URL. The API stores youtubeId for the
+          in-app player. Speaker name must match the app query
+          (Abu Alia, Abul Baraa, Pierre Vogel, One Message Foundation, Alim Hamza).
         </p>
       </div>
 

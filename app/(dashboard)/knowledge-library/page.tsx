@@ -1,6 +1,34 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
+import { PageHeader } from "@/components/shared/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   useGetArticlesQuery,
   useCreateArticleMutation,
@@ -15,466 +43,692 @@ import {
   useUpdateFatwaMutation,
   useDeleteFatwaMutation,
 } from "@/redux/features/knowledgeApi";
-import { Trash2, Edit3, Plus, Search, BookOpen, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+
+const LANG = "en";
+
+const CATEGORY_OPTIONS = [
+  "Belief",
+  "Worship",
+  "Ethics",
+  "Family",
+  "History",
+  "Quran",
+  "Hadith",
+  "Fiqh",
+  "Dawah",
+  "Other",
+];
+
+type Tab = "articles" | "books" | "fatwas";
+
+type KnowledgeArticle = {
+  _id: string;
+  articleId: string;
+  slug: string;
+  title: string;
+  content: string;
+  category: string;
+  readTime: number;
+  imageUrl?: string;
+  source?: "islamhouse" | "manual";
+  isActive?: boolean;
+};
+
+type ArticleForm = {
+  articleId: string;
+  slug: string;
+  title: string;
+  content: string;
+  category: string;
+  readTime: string;
+  source: "islamhouse" | "manual";
+  imageUrl: string;
+};
+
+type BookForm = {
+  bookId: string;
+  title: string;
+  author: string;
+  content: string;
+};
+
+type FatwaForm = {
+  fatwaId: string;
+  question: string;
+  answer: string;
+  scholar: string;
+};
+
+const emptyArticle: ArticleForm = {
+  articleId: "",
+  slug: "",
+  title: "",
+  content: "",
+  category: "Belief",
+  readTime: "5",
+  source: "manual",
+  imageUrl: "",
+};
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
 export default function KnowledgeLibraryPage() {
-  const [activeTab, setActiveTab] = useState<"articles" | "books" | "fatwas">("articles");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [lang, setLang] = useState("de");
-  const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<Tab>("articles");
+  const [category, setCategory] = useState("all");
+  const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Modals state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [articleForm, setArticleForm] = useState<ArticleForm>(emptyArticle);
+  const [bookForm, setBookForm] = useState<BookForm>({
+    bookId: "",
+    title: "",
+    author: "",
+    content: "",
+  });
+  const [fatwaForm, setFatwaForm] = useState<FatwaForm>({
+    fatwaId: "",
+    question: "",
+    answer: "",
+    scholar: "",
+  });
 
-  // Form states
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [category, setCategory] = useState("Articles");
-  const [author, setAuthor] = useState("");
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
+  const { data: articlesRes, isLoading: loadingArticles } = useGetArticlesQuery({
+    lang: LANG,
+    category: category === "all" ? undefined : category,
+    page: 1,
+    limit: 50,
+  });
+  const { data: booksRes, isLoading: loadingBooks } = useGetBooksQuery({
+    lang: LANG,
+    page: 1,
+    limit: 50,
+  });
+  const { data: fatwasRes, isLoading: loadingFatwas } = useGetFatwasQuery({
+    lang: LANG,
+    page: 1,
+    limit: 50,
+  });
 
-  // Queries
-  const { data: articlesData, isLoading: loadingArticles } = useGetArticlesQuery(
-    { lang, page, limit: 10, category: searchTerm },
-    { skip: activeTab !== "articles" }
-  );
+  const [createArticle, { isLoading: creatingArticle }] =
+    useCreateArticleMutation();
+  const [updateArticle, { isLoading: updatingArticle }] =
+    useUpdateArticleMutation();
+  const [deleteArticle, { isLoading: deletingArticle }] =
+    useDeleteArticleMutation();
+  const [createBook, { isLoading: creatingBook }] = useCreateBookMutation();
+  const [updateBook, { isLoading: updatingBook }] = useUpdateBookMutation();
+  const [deleteBook, { isLoading: deletingBook }] = useDeleteBookMutation();
+  const [createFatwa, { isLoading: creatingFatwa }] = useCreateFatwaMutation();
+  const [updateFatwa, { isLoading: updatingFatwa }] = useUpdateFatwaMutation();
+  const [deleteFatwa, { isLoading: deletingFatwa }] = useDeleteFatwaMutation();
 
-  const { data: booksData, isLoading: loadingBooks } = useGetBooksQuery(
-    { lang, page, limit: 10 },
-    { skip: activeTab !== "books" }
-  );
+  const articles: KnowledgeArticle[] = articlesRes?.data || [];
+  const books = booksRes?.data || [];
+  const fatwas = fatwasRes?.data || [];
+  const saving =
+    creatingArticle ||
+    updatingArticle ||
+    creatingBook ||
+    updatingBook ||
+    creatingFatwa ||
+    updatingFatwa;
 
-  const { data: fatwasData, isLoading: loadingFatwas } = useGetFatwasQuery(
-    { lang, page, limit: 10 },
-    { skip: activeTab !== "fatwas" }
-  );
-
-  // Mutations
-  const [createArticle] = useCreateArticleMutation();
-  const [updateArticle] = useUpdateArticleMutation();
-  const [deleteArticle] = useDeleteArticleMutation();
-
-  const [createBook] = useCreateBookMutation();
-  const [updateBook] = useUpdateBookMutation();
-  const [deleteBook] = useDeleteBookMutation();
-
-  const [createFatwa] = useCreateFatwaMutation();
-  const [updateFatwa] = useUpdateFatwaMutation();
-  const [deleteFatwa] = useDeleteFatwaMutation();
-
-  const openAddModal = () => {
-    setEditingItem(null);
-    setTitle("");
-    setContent("");
-    setCategory("Articles");
-    setAuthor("");
-    setQuestion("");
-    setAnswer("");
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (item: any) => {
-    setEditingItem(item);
-    if (activeTab === "articles") {
-      setTitle(item.title);
-      setContent(item.content);
-      setCategory(item.category);
-    } else if (activeTab === "books") {
-      setTitle(item.title);
-      setContent(item.content);
-      setAuthor(item.author || "");
+  const openCreate = () => {
+    setEditingId(null);
+    if (tab === "articles") {
+      setArticleForm({
+        ...emptyArticle,
+        articleId: `art-${Date.now()}`,
+      });
+    } else if (tab === "books") {
+      setBookForm({
+        bookId: `book-${Date.now()}`,
+        title: "",
+        author: "",
+        content: "",
+      });
     } else {
-      setQuestion(item.question);
-      setAnswer(item.answer);
+      setFatwaForm({
+        fatwaId: `fatwa-${Date.now()}`,
+        question: "",
+        answer: "",
+        scholar: "",
+      });
     }
-    setIsModalOpen(true);
+    setOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this item?")) {
-      try {
-        if (activeTab === "articles") {
-          await deleteArticle(id).unwrap();
-        } else if (activeTab === "books") {
-          await deleteBook(id).unwrap();
-        } else {
-          await deleteFatwa(id).unwrap();
-        }
-      } catch (err) {
-        alert("Failed to delete item");
-      }
-    }
+  const openEditArticle = (article: KnowledgeArticle) => {
+    setEditingId(article._id);
+    setArticleForm({
+      articleId: article.articleId,
+      slug: article.slug,
+      title: article.title,
+      content: article.content,
+      category: article.category,
+      readTime: String(article.readTime || 5),
+      source: article.source || "manual",
+      imageUrl: article.imageUrl || "",
+    });
+    setOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const openEditBook = (book: {
+    _id: string;
+    bookId: string;
+    title: string;
+    author?: string;
+    content: string;
+  }) => {
+    setEditingId(book._id);
+    setBookForm({
+      bookId: book.bookId,
+      title: book.title,
+      author: book.author || "",
+      content: book.content,
+    });
+    setOpen(true);
+  };
+
+  const openEditFatwa = (fatwa: {
+    _id: string;
+    fatwaId: string;
+    question: string;
+    answer: string;
+    scholar?: string;
+  }) => {
+    setEditingId(fatwa._id);
+    setFatwaForm({
+      fatwaId: fatwa.fatwaId,
+      question: fatwa.question,
+      answer: fatwa.answer,
+      scholar: fatwa.scholar || "",
+    });
+    setOpen(true);
+  };
+
+  const handleSave = async () => {
     try {
-      if (activeTab === "articles") {
+      if (tab === "articles") {
+        if (!articleForm.title.trim() || !articleForm.content.trim()) {
+          toast.error("Title and content are required");
+          return;
+        }
         const payload = {
-          title,
-          content,
-          category,
-          lang,
-          articleId: editingItem?.articleId || `art_${Date.now()}`,
-          slug: editingItem?.slug || title.toLowerCase().replace(/ /g, "-"),
+          articleId: articleForm.articleId || `art-${Date.now()}`,
+          slug: articleForm.slug.trim() || slugify(articleForm.title),
+          title: articleForm.title.trim(),
+          content: articleForm.content,
+          category: articleForm.category,
+          readTime: Number(articleForm.readTime) || 5,
+          lang: LANG,
+          source: articleForm.source,
+          imageUrl: articleForm.imageUrl || undefined,
         };
-        if (editingItem) {
-          await updateArticle({ id: editingItem._id, ...payload }).unwrap();
+        if (editingId) {
+          await updateArticle({ id: editingId, ...payload }).unwrap();
         } else {
           await createArticle(payload).unwrap();
         }
-      } else if (activeTab === "books") {
+      } else if (tab === "books") {
+        if (!bookForm.title.trim() || !bookForm.content.trim()) {
+          toast.error("Title and content are required");
+          return;
+        }
         const payload = {
-          title,
-          content,
-          author,
-          lang,
-          bookId: editingItem?.bookId || `book_${Date.now()}`,
+          bookId: bookForm.bookId || `book-${Date.now()}`,
+          title: bookForm.title.trim(),
+          author: bookForm.author.trim() || undefined,
+          content: bookForm.content,
+          lang: LANG,
         };
-        if (editingItem) {
-          await updateBook({ id: editingItem._id, ...payload }).unwrap();
+        if (editingId) {
+          await updateBook({ id: editingId, ...payload }).unwrap();
         } else {
           await createBook(payload).unwrap();
         }
       } else {
+        if (!fatwaForm.question.trim() || !fatwaForm.answer.trim()) {
+          toast.error("Question and answer are required");
+          return;
+        }
         const payload = {
-          question,
-          answer,
-          lang,
-          fatwaId: editingItem?.fatwaId || `fatwa_${Date.now()}`,
+          fatwaId: fatwaForm.fatwaId || `fatwa-${Date.now()}`,
+          question: fatwaForm.question.trim(),
+          answer: fatwaForm.answer,
+          scholar: fatwaForm.scholar.trim() || undefined,
+          lang: LANG,
         };
-        if (editingItem) {
-          await updateFatwa({ id: editingItem._id, ...payload }).unwrap();
+        if (editingId) {
+          await updateFatwa({ id: editingId, ...payload }).unwrap();
         } else {
           await createFatwa(payload).unwrap();
         }
       }
-      setIsModalOpen(false);
-    } catch (err) {
-      alert("Failed to save changes");
+      toast.success("Saved");
+      setOpen(false);
+    } catch (error: unknown) {
+      const err = error as { data?: { message?: string } };
+      toast.error(err.data?.message || "Failed to save");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this item?")) return;
+    try {
+      if (tab === "articles") await deleteArticle(id).unwrap();
+      else if (tab === "books") await deleteBook(id).unwrap();
+      else await deleteFatwa(id).unwrap();
+      toast.success("Deleted");
+    } catch (error: unknown) {
+      const err = error as { data?: { message?: string } };
+      toast.error(err.data?.message || "Failed to delete");
     }
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <BookOpen className="text-emerald-800" /> Knowledge Library Manager
-          </h1>
-          <p className="text-sm text-slate-500">
-            Create and organize premium articles, ebooks, and verified fatwas.
-          </p>
-        </div>
-
-        <button
-          onClick={openAddModal}
-          className="flex items-center justify-center gap-2 bg-emerald-800 hover:bg-emerald-950 text-white font-medium rounded-full px-5 py-3 transition-colors shadow"
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Knowledge Library"
+          description="Articles, books, and fatwas — one library the app syncs"
+        />
+        <Button
+          onClick={openCreate}
+          className="bg-emerald-900 hover:bg-emerald-800"
         >
-          <Plus size={18} /> Add New {activeTab === "articles" ? "Article" : activeTab === "books" ? "Book" : "Fatwa"}
-        </button>
+          <Plus className="h-4 w-4 mr-2" />
+          Add {tab === "articles" ? "article" : tab === "books" ? "book" : "fatwa"}
+        </Button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200">
-        {(["articles", "books", "fatwas"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => {
-              setActiveTab(tab);
-              setPage(1);
-            }}
-            className={`px-6 py-3 font-semibold border-b-2 text-sm capitalize transition-colors ${
-              activeTab === tab
-                ? "border-emerald-800 text-emerald-800"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* Filters Bar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl shadow-sm">
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <label className="text-sm font-medium text-slate-600">Language:</label>
-          <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value)}
-            className="border border-slate-200 rounded-full px-4 py-2 text-sm outline-none bg-slate-50"
-          >
-            <option value="de">German (Deutsch)</option>
-            <option value="en">English</option>
-            <option value="tr">Turkish (Türkçe)</option>
-            <option value="hu">Hungarian (Magyar)</option>
-            <option value="bs">Bosnian</option>
-          </select>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex rounded-full bg-slate-100 p-1">
+          {(["articles", "books", "fatwas"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setTab(item)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium capitalize ${
+                tab === item
+                  ? "bg-emerald-900 text-white"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {item}
+            </button>
+          ))}
         </div>
+        {tab === "articles" && (
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {CATEGORY_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
 
-        {activeTab === "articles" && (
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search by category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-11 pr-4 py-2 w-full border border-slate-200 rounded-full text-sm outline-none"
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base capitalize">{tab}</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {tab === "articles" && (
+            <LibraryTable
+              loading={loadingArticles}
+              empty="No articles found."
+              columns={["Title", "Category", "Source", "Status", ""]}
+              rows={articles.map((article) => ({
+                id: article._id,
+                cells: [
+                  article.title,
+                  article.category,
+                  article.source || "manual",
+                  article.isActive === false ? "Inactive" : "Active",
+                ],
+                inactive: article.isActive === false,
+                onEdit: () => openEditArticle(article),
+                onDelete: () => handleDelete(article._id),
+                deleting: deletingArticle,
+              }))}
             />
-          </div>
-        )}
-      </div>
-
-      {/* Content Table / Lists */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        {activeTab === "articles" && (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-slate-600 font-semibold text-sm">
-                <th className="p-4">Title</th>
-                <th className="p-4">Category</th>
-                <th className="p-4">Language</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loadingArticles ? (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400">Loading articles...</td>
-                </tr>
-              ) : articlesData?.data?.length ? (
-                articlesData.data.map((item: any) => (
-                  <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm">
-                    <td className="p-4 font-medium text-slate-900">{item.title}</td>
-                    <td className="p-4 text-slate-500">{item.category}</td>
-                    <td className="p-4 text-slate-500 uppercase">{item.lang}</td>
-                    <td className="p-4 text-right flex justify-end gap-2">
-                      <button onClick={() => openEditModal(item)} className="p-2 text-slate-500 hover:text-emerald-800 hover:bg-slate-100 rounded-full transition-colors">
-                        <Edit3 size={16} />
-                      </button>
-                      <button onClick={() => handleDelete(item._id)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-full transition-colors">
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400">No articles found.</td>
-                </tr>
+          )}
+          {tab === "books" && (
+            <LibraryTable
+              loading={loadingBooks}
+              empty="No books found."
+              columns={["Title", "Author", ""]}
+              rows={books.map(
+                (book: {
+                  _id: string;
+                  bookId: string;
+                  title: string;
+                  author?: string;
+                  content: string;
+                }) => ({
+                  id: book._id,
+                  cells: [book.title, book.author || "—"],
+                  onEdit: () => openEditBook(book),
+                  onDelete: () => handleDelete(book._id),
+                  deleting: deletingBook,
+                }),
               )}
-            </tbody>
-          </table>
-        )}
-
-        {activeTab === "books" && (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-slate-600 font-semibold text-sm">
-                <th className="p-4">Title</th>
-                <th className="p-4">Author</th>
-                <th className="p-4">Language</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loadingBooks ? (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400">Loading books...</td>
-                </tr>
-              ) : booksData?.data?.length ? (
-                booksData.data.map((item: any) => (
-                  <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm">
-                    <td className="p-4 font-medium text-slate-900">{item.title}</td>
-                    <td className="p-4 text-slate-500">{item.author || "Unknown"}</td>
-                    <td className="p-4 text-slate-500 uppercase">{item.lang}</td>
-                    <td className="p-4 text-right flex justify-end gap-2">
-                      <button onClick={() => openEditModal(item)} className="p-2 text-slate-500 hover:text-emerald-800 hover:bg-slate-100 rounded-full transition-colors">
-                        <Edit3 size={16} />
-                      </button>
-                      <button onClick={() => handleDelete(item._id)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-full transition-colors">
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400">No books found.</td>
-                </tr>
+            />
+          )}
+          {tab === "fatwas" && (
+            <LibraryTable
+              loading={loadingFatwas}
+              empty="No fatwas found."
+              columns={["Question", "Scholar", ""]}
+              rows={fatwas.map(
+                (fatwa: {
+                  _id: string;
+                  fatwaId: string;
+                  question: string;
+                  answer: string;
+                  scholar?: string;
+                }) => ({
+                  id: fatwa._id,
+                  cells: [fatwa.question, fatwa.scholar || "—"],
+                  onEdit: () => openEditFatwa(fatwa),
+                  onDelete: () => handleDelete(fatwa._id),
+                  deleting: deletingFatwa,
+                }),
               )}
-            </tbody>
-          </table>
-        )}
+            />
+          )}
+        </CardContent>
+      </Card>
 
-        {activeTab === "fatwas" && (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-slate-600 font-semibold text-sm">
-                <th className="p-4">Question</th>
-                <th className="p-4">Language</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loadingFatwas ? (
-                <tr>
-                  <td colSpan={3} className="p-8 text-center text-slate-400">Loading fatwas...</td>
-                </tr>
-              ) : fatwasData?.data?.length ? (
-                fatwasData.data.map((item: any) => (
-                  <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm">
-                    <td className="p-4 font-medium text-slate-900 max-w-lg truncate">{item.question}</td>
-                    <td className="p-4 text-slate-500 uppercase">{item.lang}</td>
-                    <td className="p-4 text-right flex justify-end gap-2">
-                      <button onClick={() => openEditModal(item)} className="p-2 text-slate-500 hover:text-emerald-800 hover:bg-slate-100 rounded-full transition-colors">
-                        <Edit3 size={16} />
-                      </button>
-                      <button onClick={() => handleDelete(item._id)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-full transition-colors">
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={3} className="p-8 text-center text-slate-400">No fatwas found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingId ? "Edit" : "Add"}{" "}
+              {tab === "articles" ? "article" : tab === "books" ? "book" : "fatwa"}
+            </DialogTitle>
+          </DialogHeader>
 
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-xl overflow-y-auto max-h-[90vh]">
-            <h2 className="text-xl font-bold text-slate-900">
-              {editingItem ? "Edit" : "Create"}{" "}
-              {activeTab === "articles" ? "Article" : activeTab === "books" ? "Book" : "Fatwa"}
-            </h2>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {activeTab === "articles" && (
-                <>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-slate-700">Article Title</label>
-                    <input
-                      type="text"
-                      required
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="border border-slate-200 rounded-lg px-4 py-2.5 outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-slate-700">Category</label>
-                    <input
-                      type="text"
-                      required
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="border border-slate-200 rounded-lg px-4 py-2.5 outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-slate-700">HTML Rich Text Content</label>
-                    <textarea
-                      required
-                      rows={10}
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      className="border border-slate-200 rounded-lg p-3 outline-none font-mono text-sm"
-                      placeholder="<p>Write content in rich text HTML format...</p>"
-                    />
-                  </div>
-                </>
-              )}
-
-              {activeTab === "books" && (
-                <>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-slate-700">Book Title</label>
-                    <input
-                      type="text"
-                      required
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="border border-slate-200 rounded-lg px-4 py-2.5 outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-slate-700">Author</label>
-                    <input
-                      type="text"
-                      value={author}
-                      onChange={(e) => setAuthor(e.target.value)}
-                      className="border border-slate-200 rounded-lg px-4 py-2.5 outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-slate-700">HTML Text Content</label>
-                    <textarea
-                      required
-                      rows={10}
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      className="border border-slate-200 rounded-lg p-3 outline-none font-mono text-sm"
-                      placeholder="<p>Book chapters in HTML format...</p>"
-                    />
-                  </div>
-                </>
-              )}
-
-              {activeTab === "fatwas" && (
-                <>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-slate-700">Question</label>
-                    <input
-                      type="text"
-                      required
-                      value={question}
-                      onChange={(e) => setQuestion(e.target.value)}
-                      className="border border-slate-200 rounded-lg px-4 py-2.5 outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-slate-700">Answer HTML</label>
-                    <textarea
-                      required
-                      rows={10}
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      className="border border-slate-200 rounded-lg p-3 outline-none font-mono text-sm"
-                      placeholder="<p>Answer details in HTML...</p>"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-sm font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-full bg-emerald-800 hover:bg-emerald-950 text-white text-sm font-medium shadow"
-                >
-                  Save Changes
-                </button>
+          {tab === "articles" && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={articleForm.title}
+                    onChange={(e) => {
+                      const title = e.target.value;
+                      setArticleForm((prev) => ({
+                        ...prev,
+                        title,
+                        slug: prev.slug || slugify(title),
+                      }));
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Slug</Label>
+                  <Input
+                    value={articleForm.slug}
+                    onChange={(e) =>
+                      setArticleForm({ ...articleForm, slug: e.target.value })
+                    }
+                  />
+                </div>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Read time (min)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={articleForm.readTime}
+                    onChange={(e) =>
+                      setArticleForm({
+                        ...articleForm,
+                        readTime: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Image URL</Label>
+                  <Input
+                    value={articleForm.imageUrl}
+                    onChange={(e) =>
+                      setArticleForm({
+                        ...articleForm,
+                        imageUrl: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select
+                    value={articleForm.category}
+                    onValueChange={(value) =>
+                      setArticleForm({ ...articleForm, category: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORY_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Source</Label>
+                  <Select
+                    value={articleForm.source}
+                    onValueChange={(value: "islamhouse" | "manual") =>
+                      setArticleForm({ ...articleForm, source: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">Manual</SelectItem>
+                      <SelectItem value="islamhouse">IslamHouse</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Content</Label>
+                <textarea
+                  className="flex min-h-48 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+                  value={articleForm.content}
+                  onChange={(e) =>
+                    setArticleForm({ ...articleForm, content: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {tab === "books" && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input
+                  value={bookForm.title}
+                  onChange={(e) =>
+                    setBookForm({ ...bookForm, title: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Author</Label>
+                <Input
+                  value={bookForm.author}
+                  onChange={(e) =>
+                    setBookForm({ ...bookForm, author: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Content</Label>
+                <textarea
+                  className="flex min-h-48 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+                  value={bookForm.content}
+                  onChange={(e) =>
+                    setBookForm({ ...bookForm, content: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {tab === "fatwas" && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Question</Label>
+                <Input
+                  value={fatwaForm.question}
+                  onChange={(e) =>
+                    setFatwaForm({ ...fatwaForm, question: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Scholar</Label>
+                <Input
+                  value={fatwaForm.scholar}
+                  onChange={(e) =>
+                    setFatwaForm({ ...fatwaForm, scholar: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Answer</Label>
+                <textarea
+                  className="flex min-h-48 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+                  value={fatwaForm.answer}
+                  onChange={(e) =>
+                    setFatwaForm({ ...fatwaForm, answer: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-900 hover:bg-emerald-800"
+              disabled={saving}
+              onClick={handleSave}
+            >
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function LibraryTable({
+  loading,
+  empty,
+  columns,
+  rows,
+}: {
+  loading: boolean;
+  empty: string;
+  columns: string[];
+  rows: {
+    id: string;
+    cells: string[];
+    inactive?: boolean;
+    onEdit: () => void;
+    onDelete: () => void;
+    deleting?: boolean;
+  }[];
+}) {
+  if (loading) {
+    return <p className="p-6 text-sm text-slate-500">Loading...</p>;
+  }
+  if (rows.length === 0) {
+    return <p className="p-6 text-sm text-slate-500">{empty}</p>;
+  }
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {columns.map((column) => (
+            <TableHead
+              key={column || "actions"}
+              className={column === "" ? "text-right" : undefined}
+            >
+              {column}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => (
+          <TableRow key={row.id}>
+            {row.cells.map((cell, index) => (
+              <TableCell
+                key={`${row.id}-${index}`}
+                className={index === 0 ? "font-medium max-w-xs truncate" : undefined}
+              >
+                {index === row.cells.length - 1 &&
+                (cell === "Active" || cell === "Inactive") ? (
+                  <Badge variant={row.inactive ? "restricted" : "active"}>
+                    {cell}
+                  </Badge>
+                ) : (
+                  cell
+                )}
+              </TableCell>
+            ))}
+            <TableCell className="text-right space-x-1">
+              <Button variant="ghost" size="icon" onClick={row.onEdit}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-red-500"
+                disabled={row.deleting}
+                onClick={row.onDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }

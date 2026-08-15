@@ -23,7 +23,6 @@ const navItems = [
   { title: "User Management", href: "/users", icon: Users },
   { title: "Subscription Plans", href: "/subscriptions/plans", icon: CreditCard },
   { title: "Premium Benefits", href: "/subscriptions/benefits", icon: ListOrdered },
-  { title: "Articles", href: "/articles", icon: BookOpen },
   { title: "Knowledge Library", href: "/knowledge-library", icon: BookOpen },
   { title: "Notifications", href: "/notifications", icon: Bell },
   { title: "Sheikh Media", href: "/sheikh-media", icon: Video },
