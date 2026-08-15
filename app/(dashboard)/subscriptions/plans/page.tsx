@@ -37,7 +37,7 @@ type PlanForm = {
   description: string;
   price: string;
   currency: string;
-  interval: "month" | "year";
+  interval: "month" | "year" | "lifetime";
   featuresText: string;
 };
 
@@ -74,8 +74,8 @@ export default function SubscriptionPlansPage() {
       toast.error("Name and description are required");
       return;
     }
-    if (Number.isNaN(price) || price < 0.99 || price > 50) {
-      toast.error("Price must be between €0.99 and €50.00");
+    if (Number.isNaN(price) || price < 0.99 || price > 200) {
+      toast.error("Price must be between €0.99 and €200.00");
       return;
     }
     const features = form.featuresText
@@ -134,7 +134,7 @@ export default function SubscriptionPlansPage() {
       <div className="flex items-start justify-between gap-4">
         <PageHeader
           title="Subscription Plans"
-          description="Manage Stripe-backed pricing tiers (€0.99 – €50.00)"
+          description="Manage Stripe-backed pricing tiers (€0.99 – €200.00)"
         />
         <Button
           onClick={openCreate}
@@ -237,7 +237,7 @@ export default function SubscriptionPlansPage() {
                 <Input
                   type="number"
                   min={0.99}
-                  max={50}
+                  max={200}
                   step={0.01}
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
@@ -265,7 +265,7 @@ export default function SubscriptionPlansPage() {
               <Label>Interval</Label>
               <Select
                 value={form.interval}
-                onValueChange={(value: "month" | "year") =>
+                onValueChange={(value: "month" | "year" | "lifetime") =>
                   setForm({ ...form, interval: value })
                 }
               >
@@ -275,6 +275,7 @@ export default function SubscriptionPlansPage() {
                 <SelectContent>
                   <SelectItem value="month">Month</SelectItem>
                   <SelectItem value="year">Year</SelectItem>
+                  <SelectItem value="lifetime">Lifetime</SelectItem>
                 </SelectContent>
               </Select>
             </div>

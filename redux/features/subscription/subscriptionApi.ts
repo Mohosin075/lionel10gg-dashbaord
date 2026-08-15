@@ -6,7 +6,7 @@ export type SubscriptionPlan = {
   description: string;
   price: number;
   currency: string;
-  interval: "month" | "year";
+  interval: "month" | "year" | "lifetime";
   intervalCount?: number;
   features: string[];
   isActive?: boolean;

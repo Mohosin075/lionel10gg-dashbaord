@@ -2,15 +2,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const summaryItems = [
-  { label: "Total App Users", value: "45,230" },
-  { label: "Total Verse Views", value: "423,567" },
-  { label: "Total Bookmarks Created", value: "89,234" },
-  { label: "Total Highlights Created", value: "156,891" },
-  { label: "Average Daily Active Users", value: "12,636" },
-];
+export default function ReportSummary({ data }: { data?: any }) {
+  const summaryItems = [
+    { label: "Total App Users", value: data?.totalAppUsers?.toLocaleString?.() ?? "45,230" },
+    { label: "Total Verse Views", value: data?.totalVerseViews?.toLocaleString?.() ?? "423,567" },
+    { label: "Total Bookmarks Created", value: data?.totalBookmarksCreated?.toLocaleString?.() ?? "89,234" },
+    { label: "Total Highlights Created", value: data?.totalHighlightsCreated?.toLocaleString?.() ?? "156,891" },
+    { label: "Average Daily Active Users", value: data?.avgDailyActiveUsers?.toLocaleString?.() ?? "12,636" },
+  ];
 
-export default function ReportSummary() {
   return (
     <Card>
       <CardHeader>

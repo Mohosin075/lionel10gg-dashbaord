@@ -12,7 +12,17 @@ import {
   YAxis,
 } from "recharts";
 
-export default function FeatureUsageChart() {
+import { useMemo } from "react";
+
+export default function FeatureUsageChart({ data }: { data?: any[] }) {
+  const chartData = useMemo(() => {
+    if (!data) return reportsFeatureUsage;
+    return data.map((item) => ({
+      name: item.label,
+      value: item.count,
+    }));
+  }, [data]);
+
   return (
     <Card>
       <CardHeader>
@@ -21,7 +31,7 @@ export default function FeatureUsageChart() {
       <CardContent className="h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={reportsFeatureUsage}
+            data={chartData}
             margin={{ top: 5, right: 10, left: 10, bottom: 0 }}
             barSize={40}
           >

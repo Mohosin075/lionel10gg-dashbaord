@@ -11,6 +11,7 @@ import {
   ListOrdered,
   BookOpen,
   Video,
+  Bell,
 } from "lucide-react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
@@ -24,6 +25,7 @@ const navItems = [
   { title: "Premium Benefits", href: "/subscriptions/benefits", icon: ListOrdered },
   { title: "Articles", href: "/articles", icon: BookOpen },
   { title: "Knowledge Library", href: "/knowledge-library", icon: BookOpen },
+  { title: "Notifications", href: "/notifications", icon: Bell },
   { title: "Sheikh Media", href: "/sheikh-media", icon: Video },
   { title: "Reports", href: "/reports", icon: BarChart2 },
 ];

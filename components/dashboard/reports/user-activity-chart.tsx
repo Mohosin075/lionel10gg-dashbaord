@@ -12,7 +12,18 @@ import {
   YAxis,
 } from "recharts";
 
-export default function UserActivityChart() {
+import { useMemo } from "react";
+
+export default function UserActivityChart({ data }: { data?: any[] }) {
+  const chartData = useMemo(() => {
+    if (!data) return reportsUserActivity;
+    return data.map((item) => ({
+      date: item.date,
+      ActiveUsers: item.activeUsers,
+      NewUsers: item.newUsers,
+    }));
+  }, [data]);
+
   return (
     <Card>
       <CardHeader>
@@ -21,7 +32,7 @@ export default function UserActivityChart() {
       <CardContent className="h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
-            data={reportsUserActivity}
+            data={chartData}
             margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
           >
             <CartesianGrid
