@@ -6,42 +6,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-
 import { useLoginUserMutation } from "@/redux/features/auth/authApi";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { setUser } from "@/redux/slice/userSlice";
 import { useDispatch } from "react-redux";
 
 type FormValues = {
   email: string;
   password: string;
-  remember: true | false
+  remember: boolean;
 };
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useDispatch();
   const [loginUser, { isLoading }] = useLoginUserMutation();
-
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
       email: "",
       password: "",
-      remember: false,
+      remember: true,
     },
   });
 
-  const remember = watch("remember");
-
   const onSubmit = async (data: FormValues) => {
-    console.log("data",data)
     try {
       const res = await loginUser({
         email: data.email,
@@ -51,32 +46,27 @@ export default function LoginForm() {
 
       if (res.success) {
         toast.success(res.message || "Login successful");
-        dispatch(setUser(res.data));
-        router.push("/");
+        // Full API response so userSlice can read payload.data
+        dispatch(setUser(res));
+        const redirect = searchParams.get("redirect") || "/";
+        router.push(redirect);
       } else {
         toast.error(res.message || "Login failed");
       }
-    } catch (error: any) {
-      toast.error(error.data?.message || "Something went wrong");
+    } catch (error: unknown) {
+      const err = error as { data?: { message?: string } };
+      toast.error(err.data?.message || "Something went wrong");
     }
   };
 
-
   return (
     <div className="w-full rounded-lg bg-white md:px-8 py-10 ">
-      {/* Title */}
-      <h1 className="text-3xl font-semibold text-gray-900">
-        Admin Login
-      </h1>
-
-      {/* Subtitle */}
+      <h1 className="text-3xl font-semibold text-gray-900">Admin Login</h1>
       <p className="mt-2 text-base text-black">
         Enter your Credentials to access your dashboard
       </p>
 
-      {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-5">
-        {/* Email */}
         <div className="space-y-2">
           <Label className="text-base font-medium text-gray-700">
             Email address
@@ -85,13 +75,10 @@ export default function LoginForm() {
             type="email"
             placeholder="Enter your email"
             className="h-14 text-lg rounded-md"
-            {...register("email", {
-              required: "Email is required",
-            })}
+            {...register("email", { required: "Email is required" })}
           />
         </div>
 
-        {/* Password */}
         <div className="space-y-2">
           <Label className="text-base font-medium text-gray-700">
             Password
@@ -100,26 +87,20 @@ export default function LoginForm() {
             type="password"
             placeholder="Enter your password"
             className="h-14 text-lg rounded-md"
-            {...register("password", {
-              required: "Password is required",
-            })}
+            {...register("password", { required: "Password is required" })}
           />
         </div>
 
-        {/* Remember + Forgot */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Checkbox
-    id="remember"
-    checked={watch("remember")}
-    onCheckedChange={(value) => setValue("remember", !!value)}
-  />
-  <Label
-    htmlFor="remember"
-    className="text-base text-gray-600"
-  >
-    Remember for 30 days
-  </Label>
+              id="remember"
+              checked={watch("remember")}
+              onCheckedChange={(value) => setValue("remember", !!value)}
+            />
+            <Label htmlFor="remember" className="text-base text-gray-600">
+              Remember for 30 days
+            </Label>
           </div>
 
           <button
@@ -131,10 +112,9 @@ export default function LoginForm() {
           </button>
         </div>
 
-        {/* Button */}
         <Button
           type="submit"
-          disabled={isLoading || !remember}
+          disabled={isLoading}
           className="mt-2 h-14 text-lg w-full rounded-lg bg-[#0F3D2E] text-white hover:bg-[#0c3326]"
         >
           {isLoading ? "Logging in..." : "Login"}

@@ -1,33 +1,65 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Users,
   BarChart2,
+  CreditCard,
+  ListOrdered,
+  BookOpen,
 } from "lucide-react";
 import Image from "next/image";
+import { useDispatch, useSelector } from "react-redux";
+import { removeUser, selectUser } from "@/redux/slice/userSlice";
+import { useGetProfileQuery } from "@/redux/features/user/userApi";
 
 const navItems = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard },
   { title: "User Management", href: "/users", icon: Users },
+  { title: "Subscription Plans", href: "/subscriptions/plans", icon: CreditCard },
+  { title: "Premium Benefits", href: "/subscriptions/benefits", icon: ListOrdered },
+  { title: "Articles", href: "/articles", icon: BookOpen },
   { title: "Reports", href: "/reports", icon: BarChart2 },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const userState = useSelector(selectUser);
+  const { data: profileRes } = useGetProfileQuery();
+
+  const profile = profileRes?.data;
+  const role = userState?.user?.role || profile?.role || "admin";
+  const email = profile?.email || "admin";
+  const name = profile?.name || role;
+
+  const handleLogout = () => {
+    dispatch(removeUser());
+    router.push("/login");
+  };
 
   return (
     <div className="flex h-[calc(100vh-40px)] w-72 flex-col bg-white rounded-2xl shadow">
-      <div className="w-52 h-auto mx-auto py-5">        
-        <Image src={require("@/public/logo.png")} className="w-full" alt="Quran" width={500} height={500} />
+      <div className="w-52 h-auto mx-auto py-5">
+        <Image
+          src={require("@/public/logo.png")}
+          className="w-full"
+          alt="Quran"
+          width={500}
+          height={500}
+        />
       </div>
 
-      <nav className="flex-1 space-y-1 p-4">
+      <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive =
+            item.href === "/"
+              ? pathname === "/"
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}
@@ -52,20 +84,26 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-slate-100 flex flex-col gap-4">
-        <button className="flex w-full items-center justify-center rounded-full bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition-colors">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center justify-center rounded-full bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+        >
           Logout
         </button>
         <div className="flex items-center gap-3 px-2">
           <div className="h-10 w-10 overflow-hidden rounded-full bg-slate-200">
             <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
-              alt="Admin"
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`}
+              alt={name}
               className="h-full w-full object-cover"
             />
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-slate-500">admin@photopia.app</span>
-            <span className="text-sm font-medium text-slate-900">Admin</span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs text-slate-500 truncate">{email}</span>
+            <span className="text-sm font-medium text-slate-900 capitalize truncate">
+              {name}
+            </span>
           </div>
         </div>
       </div>

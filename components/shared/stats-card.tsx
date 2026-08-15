@@ -18,10 +18,11 @@ const gridColsClass: Record<number, string> = {
   2: "md:grid-cols-2",
   3: "md:grid-cols-3",
   4: "md:grid-cols-4",
+  5: "md:grid-cols-3 lg:grid-cols-5",
 };
 
 export function StatsCard({ data }: { data: StatItem[] }) {
-  const cols = Math.min(Math.max(data.length, 1), 4);
+  const cols = Math.min(Math.max(data.length, 1), 5);
 
   return (
     <div className={cn("grid gap-4", gridColsClass[cols])}>

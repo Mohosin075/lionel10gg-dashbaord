@@ -2,19 +2,25 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    mostSearchedVerses
-} from "@/lib/dummy-data";
-import {
-    Bar,
-    BarChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 
-export default function MostSearchedVerses() {
+type Props = {
+  data?: { label: string; count: number }[];
+};
+
+export default function MostSearchedVerses({ data = [] }: Props) {
+  const chartData = data.map((item) => ({
+    verse: item.label,
+    searches: item.count,
+  }));
+
   return (
     <Card>
       <CardHeader>
@@ -24,7 +30,7 @@ export default function MostSearchedVerses() {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             layout="vertical"
-            data={mostSearchedVerses}
+            data={chartData}
             margin={{ top: 5, right: 10, left: 30, bottom: 0 }}
             barSize={20}
           >
@@ -39,8 +45,6 @@ export default function MostSearchedVerses() {
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 12, fill: "#64748b" }}
-              domain={[0, 16000]}
-              ticks={[0, 4000, 8000, 12000, 16000]}
             />
             <YAxis
               type="category"
@@ -48,6 +52,7 @@ export default function MostSearchedVerses() {
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 10, fill: "#64748b" }}
+              width={110}
             />
             <Tooltip cursor={{ fill: "transparent" }} />
             <Bar dataKey="searches" fill="#0ea5e9" radius={[0, 4, 4, 0]} />

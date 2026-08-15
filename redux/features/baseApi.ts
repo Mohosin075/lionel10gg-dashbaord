@@ -9,26 +9,34 @@ export const baseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: `${baseURL}/api/v1`,
     prepareHeaders: (headers, { getState }) => {
+      if (headers.has("authorization") || headers.has("Authorization")) {
+        return headers;
+      }
+
       const userData = (getState() as RootState).user.user;
 
       if (userData) {
-        // Extract the accessToken from the user data
         const token =
           typeof userData === "object" && userData.accessToken
             ? userData.accessToken
-            : userData; // Fallback to the entire token if it's not an object
+            : userData;
 
-        headers.set("Authorization", `Bearer ${token}`);
+        if (token) {
+          headers.set("Authorization", `Bearer ${token}`);
+        }
       }
       return headers;
     },
   }),
-  tagTypes: ["Auth", "Pricing", "Service", "staff", "Review", "Booking", "Support", "client"],
-  endpoints: (builder) => ({
-    getProfile: builder.query<any, void>({
-      query: () => "/profile",
-    }),
-  }),
+  tagTypes: [
+    "Auth",
+    "User",
+    "Profile",
+    "Dashboard",
+    "SubscriptionPlan",
+    "PremiumBenefit",
+    "SubscriptionAnalytics",
+    "Article",
+  ],
+  endpoints: () => ({}),
 });
-
-export const { useGetProfileQuery } = baseApi;
