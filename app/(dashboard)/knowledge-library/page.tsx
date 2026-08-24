@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -46,7 +46,7 @@ import {
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
-const LANG = "en";
+const LANG = "de";
 
 const CATEGORY_OPTIONS = [
   "Belief",
