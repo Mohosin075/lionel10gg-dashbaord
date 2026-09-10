@@ -71,7 +71,7 @@ export default function TranslationsPage() {
   const [searchLang, setSearchLang] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLang, setSelectedLang] = useState("bn");
-  const [selectedModule, setSelectedModule] = useState<"hadith" | "dua" | "knowledge">("hadith");
+  const [selectedModule, setSelectedModule] = useState<"hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa">("hadith");
   const [confirmRetranslate, setConfirmRetranslate] = useState(false);
 
   const jobs = jobsRes?.data || [];
@@ -102,15 +102,35 @@ export default function TranslationsPage() {
     const hadithPack = packs.find((p) => p.module === "hadith" && p.lang === code);
     const duaPack = packs.find((p) => p.module === "dua" && p.lang === code);
     const knowledgePack = packs.find((p) => p.module === "knowledge" && p.lang === code);
+    const quranPack = packs.find((p) => p.module === "quran" && p.lang === code);
+    const tafsirPack = packs.find((p) => p.module === "tafsir" && p.lang === code);
+    const bookPack = packs.find((p) => p.module === "book" && p.lang === code);
+    const fatwaPack = packs.find((p) => p.module === "fatwa" && p.lang === code);
 
     const hadithJob = jobs.find((j) => j.targetLang === code && j.module === "hadith");
     const duaJob = jobs.find((j) => j.targetLang === code && j.module === "dua");
     const knowledgeJob = jobs.find((j) => j.targetLang === code && j.module === "knowledge");
+    const quranJob = jobs.find((j) => j.targetLang === code && j.module === "quran");
+    const tafsirJob = jobs.find((j) => j.targetLang === code && j.module === "tafsir");
+    const bookJob = jobs.find((j) => j.targetLang === code && j.module === "book");
+    const fatwaJob = jobs.find((j) => j.targetLang === code && j.module === "fatwa");
 
     return {
       hadithCount: langCoverage.hadithCount || 0,
       duaCount: langCoverage.duaCount || 0,
       knowledgeCount: langCoverage.knowledgeCount || 0,
+      quranCount: langCoverage.quranCount || 0,
+      tafsirCount: langCoverage.tafsirCount || 0,
+      bookCount: langCoverage.bookCount || 0,
+      fatwaCount: langCoverage.fatwaCount || 0,
+      quranPack,
+      tafsirPack,
+      bookPack,
+      fatwaPack,
+      quranJob,
+      tafsirJob,
+      bookJob,
+      fatwaJob,
       hadithPack,
       duaPack,
       knowledgePack,
@@ -131,12 +151,20 @@ export default function TranslationsPage() {
 
     // Automatically pick the first untranslated module
     const stats = getLangStats(langCode);
-    if (stats.hadithCount === 0 && !stats.hadithPack) {
+    if (stats.quranCount === 0 && !stats.quranPack) {
+      setSelectedModule("quran");
+    } else if (stats.tafsirCount === 0 && !stats.tafsirPack) {
+      setSelectedModule("tafsir");
+    } else if (stats.hadithCount === 0 && !stats.hadithPack) {
       setSelectedModule("hadith");
     } else if (stats.duaCount === 0 && !stats.duaPack) {
       setSelectedModule("dua");
     } else if (stats.knowledgeCount === 0 && !stats.knowledgePack) {
       setSelectedModule("knowledge");
+    } else if (stats.bookCount === 0 && !stats.bookPack) {
+      setSelectedModule("book");
+    } else if (stats.fatwaCount === 0 && !stats.fatwaPack) {
+      setSelectedModule("fatwa");
     } else {
       setSelectedModule("hadith");
     }
@@ -208,6 +236,14 @@ export default function TranslationsPage() {
       ? currentModalStats.hadithCount
       : selectedModule === "dua"
       ? currentModalStats.duaCount
+      : selectedModule === "quran"
+      ? currentModalStats.quranCount
+      : selectedModule === "tafsir"
+      ? currentModalStats.tafsirCount
+      : selectedModule === "book"
+      ? currentModalStats.bookCount
+      : selectedModule === "fatwa"
+      ? currentModalStats.fatwaCount
       : currentModalStats.knowledgeCount;
 
   return (
@@ -465,13 +501,16 @@ export default function TranslationsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="py-4 px-6">Language</th>
-                <th className="py-4 px-6">ISO Code</th>
-                <th className="py-4 px-6">Hadith Collection</th>
-                <th className="py-4 px-6">Dua Collection</th>
-                <th className="py-4 px-6">Knowledge Library</th>
-                <th className="py-4 px-6">Cost Estimate</th>
-                <th className="py-4 px-6 text-right">Action</th>
+                <th className="py-4 px-5">Language</th>
+                <th className="py-4 px-3">ISO</th>
+                <th className="py-4 px-3">Quran</th>
+                <th className="py-4 px-3">Tafsir</th>
+                <th className="py-4 px-3">Hadith</th>
+                <th className="py-4 px-3">Dua</th>
+                <th className="py-4 px-3">Knowledge</th>
+                <th className="py-4 px-3">Books</th>
+                <th className="py-4 px-3">Fatwas</th>
+                <th className="py-4 px-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -481,138 +520,125 @@ export default function TranslationsPage() {
 
                 // Check overall readiness
                 const allModulesReady =
+                  (stats.quranCount > 0 || stats.quranPack) &&
+                  (stats.tafsirCount > 0 || stats.tafsirPack) &&
                   (stats.hadithCount > 0 || stats.hadithPack) &&
                   (stats.duaCount > 0 || stats.duaPack) &&
-                  (stats.knowledgeCount > 0 || stats.knowledgePack);
+                  (stats.knowledgeCount > 0 || stats.knowledgePack) &&
+                  (stats.bookCount > 0 || stats.bookPack) &&
+                  (stats.fatwaCount > 0 || stats.fatwaPack);
 
-                const hasActiveJob =
-                  (stats.hadithJob && (stats.hadithJob.status === "in_progress" || stats.hadithJob.status === "completed")) ||
-                  (stats.duaJob && (stats.duaJob.status === "in_progress" || stats.duaJob.status === "completed")) ||
-                  (stats.knowledgeJob && (stats.knowledgeJob.status === "in_progress" || stats.knowledgeJob.status === "completed"));
+                const hasActiveJob = [
+                  stats.quranJob,
+                  stats.tafsirJob,
+                  stats.hadithJob,
+                  stats.duaJob,
+                  stats.knowledgeJob,
+                  stats.bookJob,
+                  stats.fatwaJob,
+                ].some((j) => j && (j.status === "in_progress" || j.status === "completed"));
 
                 return (
                   <tr key={lang.code} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-4 px-6 font-semibold text-slate-900">
+                    <td className="py-3.5 px-5 font-semibold text-slate-900 whitespace-nowrap">
                       {lang.name}
                     </td>
 
-                    <td className="py-4 px-6">
-                      <span className="font-mono text-xs text-slate-500 uppercase bg-slate-100 px-2 py-0.5 rounded">
+                    <td className="py-3.5 px-3">
+                      <span className="font-mono text-[11px] text-slate-500 uppercase bg-slate-100 px-1.5 py-0.5 rounded">
                         {lang.code}
                       </span>
                     </td>
 
-                    {/* HADITH MODULE */}
-                    <td className="py-4 px-6">
-                      {isEng ? (
-                        <Badge className="bg-slate-100 text-slate-700 text-xs font-medium">
-                          Source (36,432)
-                        </Badge>
-                      ) : stats.hadithPack ? (
-                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs flex items-center gap-1 w-fit">
-                          <Check className="h-3 w-3" /> Pack v{stats.hadithPack.version} Live
-                        </Badge>
-                      ) : stats.hadithCount > 0 ? (
-                        <div className="space-y-0.5">
-                          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-xs flex items-center gap-1 w-fit">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {stats.hadithCount} in DB
-                          </Badge>
-                          <Link href="/offline-packs" className="text-[11px] text-emerald-700 font-semibold hover:underline block">
-                            Create Pack →
-                          </Link>
-                        </div>
+                    {/* QURAN */}
+                    <td className="py-3.5 px-3">
+                      {isEng || stats.quranCount > 0 ? (
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">✓ Ready</span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">Pending</span>
+                      )}
+                    </td>
+
+                    {/* TAFSIR */}
+                    <td className="py-3.5 px-3">
+                      {isEng || stats.tafsirCount > 0 ? (
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">✓ Ready</span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">Pending</span>
+                      )}
+                    </td>
+
+                    {/* HADITH */}
+                    <td className="py-3.5 px-3">
+                      {isEng || stats.hadithCount > 0 ? (
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">✓ Ready</span>
                       ) : stats.hadithJob?.status === "in_progress" ? (
-                        <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs animate-pulse">
-                          ⏳ Translating
-                        </Badge>
+                        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">⏳ Translating</span>
                       ) : (
-                        <span className="text-xs text-slate-400">Not Translated</span>
+                        <span className="text-[11px] text-slate-400">Pending</span>
                       )}
                     </td>
 
-                    {/* DUA MODULE */}
-                    <td className="py-4 px-6">
-                      {isEng ? (
-                        <Badge className="bg-slate-100 text-slate-700 text-xs font-medium">
-                          Source (264)
-                        </Badge>
-                      ) : stats.duaPack ? (
-                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs flex items-center gap-1 w-fit">
-                          <Check className="h-3 w-3" /> Pack v{stats.duaPack.version} Live
-                        </Badge>
-                      ) : stats.duaCount > 0 ? (
-                        <div className="space-y-0.5">
-                          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-xs flex items-center gap-1 w-fit">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {stats.duaCount} in DB
-                          </Badge>
-                          <Link href="/offline-packs" className="text-[11px] text-emerald-700 font-semibold hover:underline block">
-                            Create Pack →
-                          </Link>
-                        </div>
+                    {/* DUA */}
+                    <td className="py-3.5 px-3">
+                      {isEng || stats.duaCount > 0 ? (
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">✓ Ready</span>
                       ) : stats.duaJob?.status === "in_progress" ? (
-                        <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs animate-pulse">
-                          ⏳ Translating
-                        </Badge>
+                        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">⏳ Translating</span>
                       ) : (
-                        <span className="text-xs text-slate-400">Not Translated</span>
+                        <span className="text-[11px] text-slate-400">Pending</span>
                       )}
                     </td>
 
-                    {/* KNOWLEDGE MODULE */}
-                    <td className="py-4 px-6">
-                      {isEng ? (
-                        <Badge className="bg-slate-100 text-slate-700 text-xs font-medium">
-                          Source
-                        </Badge>
-                      ) : stats.knowledgePack ? (
-                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs flex items-center gap-1 w-fit">
-                          <Check className="h-3 w-3" /> Pack v{stats.knowledgePack.version} Live
-                        </Badge>
-                      ) : stats.knowledgeCount > 0 ? (
-                        <div className="space-y-0.5">
-                          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-xs flex items-center gap-1 w-fit">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {stats.knowledgeCount} in DB
-                          </Badge>
-                          <Link href="/offline-packs" className="text-[11px] text-emerald-700 font-semibold hover:underline block">
-                            Create Pack →
-                          </Link>
-                        </div>
+                    {/* KNOWLEDGE */}
+                    <td className="py-3.5 px-3">
+                      {isEng || stats.knowledgeCount > 0 ? (
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">✓ Ready</span>
                       ) : stats.knowledgeJob?.status === "in_progress" ? (
-                        <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs animate-pulse">
-                          ⏳ Translating
-                        </Badge>
+                        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">⏳ Translating</span>
                       ) : (
-                        <span className="text-xs text-slate-400">Not Translated</span>
+                        <span className="text-[11px] text-slate-400">Pending</span>
                       )}
                     </td>
 
-                    <td className="py-4 px-6 text-xs text-slate-500">
-                      ~৳18 <span className="text-slate-400">($0.15)</span>
+                    {/* BOOKS */}
+                    <td className="py-3.5 px-3">
+                      {isEng || stats.bookCount > 0 ? (
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">✓ Ready</span>
+                      ) : stats.bookJob?.status === "in_progress" ? (
+                        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">⏳ Translating</span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">Pending</span>
+                      )}
+                    </td>
+
+                    {/* FATWAS */}
+                    <td className="py-3.5 px-3">
+                      {isEng || stats.fatwaCount > 0 ? (
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">✓ Ready</span>
+                      ) : stats.fatwaJob?.status === "in_progress" ? (
+                        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">⏳ Translating</span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">Pending</span>
+                      )}
                     </td>
 
                     {/* ACTION COLUMN */}
-                    <td className="py-4 px-6 text-right">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       {isEng ? (
-                        <span className="text-xs font-medium text-slate-400">
-                          Source Language
+                        <span className="text-[11px] font-medium text-slate-400">
+                          Source
                         </span>
                       ) : hasActiveJob ? (
-                        <Badge className="bg-amber-100 text-amber-900 text-xs animate-pulse">
+                        <Badge className="bg-amber-100 text-amber-900 text-[11px] animate-pulse">
                           Translating...
                         </Badge>
-                      ) : allModulesReady ? (
-                        <Link
-                          href="/offline-packs"
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg hover:bg-emerald-100 transition-colors"
-                        >
-                          <Package className="h-3.5 w-3.5" /> All Ready
-                        </Link>
                       ) : (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => openModalForLang(lang.code)}
-                          className="text-xs rounded-xl hover:bg-emerald-50 hover:text-emerald-900 border-slate-200 cursor-pointer"
+                          className="text-xs h-8 rounded-lg hover:bg-emerald-50 hover:text-emerald-900 border-slate-200 cursor-pointer"
                         >
                           Translate
                         </Button>
@@ -659,9 +685,13 @@ export default function TranslationsPage() {
                   {APP_LANGUAGES.filter((l) => l.code.toLowerCase() !== "en").map((lang) => {
                     const lStats = getLangStats(lang.code);
                     const doneCount =
+                      (lStats.quranCount > 0 ? 1 : 0) +
+                      (lStats.tafsirCount > 0 ? 1 : 0) +
                       (lStats.hadithCount > 0 ? 1 : 0) +
                       (lStats.duaCount > 0 ? 1 : 0) +
-                      (lStats.knowledgeCount > 0 ? 1 : 0);
+                      (lStats.knowledgeCount > 0 ? 1 : 0) +
+                      (lStats.bookCount > 0 ? 1 : 0) +
+                      (lStats.fatwaCount > 0 ? 1 : 0);
 
                     return (
                       <SelectItem key={lang.code} value={lang.code}>
@@ -671,7 +701,7 @@ export default function TranslationsPage() {
                           </span>
                           {doneCount > 0 && (
                             <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">
-                              {doneCount}/3 Done
+                              {doneCount}/7 Done
                             </span>
                           )}
                         </div>
@@ -689,7 +719,7 @@ export default function TranslationsPage() {
               </label>
               <Select
                 value={selectedModule}
-                onValueChange={(val: "hadith" | "dua" | "knowledge") => {
+                onValueChange={(val: any) => {
                   setSelectedModule(val);
                   setConfirmRetranslate(false);
                 }}
@@ -698,33 +728,73 @@ export default function TranslationsPage() {
                   <SelectValue placeholder="Select Module" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
+                  <SelectItem value="quran">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>📖 Quran (114 Surahs / Ayahs)</span>
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {currentModalStats.quranCount > 0
+                          ? `✓ ${currentModalStats.quranCount} in DB`
+                          : "Untranslated"}
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="tafsir">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>📜 Tafsir (Exegesis)</span>
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {currentModalStats.tafsirCount > 0
+                          ? `✓ ${currentModalStats.tafsirCount} in DB`
+                          : "Untranslated"}
+                      </span>
+                    </div>
+                  </SelectItem>
                   <SelectItem value="hadith">
                     <div className="flex items-center justify-between gap-4">
-                      <span>Hadith Collection</span>
+                      <span>📚 Hadith Collection</span>
                       <span className="text-[11px] font-medium text-slate-400">
                         {currentModalStats.hadithCount > 0
-                          ? `✓ ${currentModalStats.hadithCount} in DB (Done)`
-                          : "Untranslated (0 in DB)"}
+                          ? `✓ ${currentModalStats.hadithCount} in DB`
+                          : "Untranslated"}
                       </span>
                     </div>
                   </SelectItem>
                   <SelectItem value="dua">
                     <div className="flex items-center justify-between gap-4">
-                      <span>Dua Collection</span>
+                      <span>🤲 Dua Collection</span>
                       <span className="text-[11px] font-medium text-slate-400">
                         {currentModalStats.duaCount > 0
-                          ? `✓ ${currentModalStats.duaCount} in DB (Done)`
-                          : "Untranslated (0 in DB)"}
+                          ? `✓ ${currentModalStats.duaCount} in DB`
+                          : "Untranslated"}
                       </span>
                     </div>
                   </SelectItem>
                   <SelectItem value="knowledge">
                     <div className="flex items-center justify-between gap-4">
-                      <span>Knowledge Library</span>
+                      <span>🧠 Knowledge Library (Articles)</span>
                       <span className="text-[11px] font-medium text-slate-400">
                         {currentModalStats.knowledgeCount > 0
-                          ? `✓ ${currentModalStats.knowledgeCount} in DB (Done)`
-                          : "Untranslated (0 in DB)"}
+                          ? `✓ ${currentModalStats.knowledgeCount} in DB`
+                          : "Untranslated"}
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="book">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>📚 Islamic Books (IslamHouse)</span>
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {currentModalStats.bookCount > 0
+                          ? `✓ ${currentModalStats.bookCount} in DB`
+                          : "Untranslated"}
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="fatwa">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>⚖️ Fatwas (IslamHouse)</span>
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {currentModalStats.fatwaCount > 0
+                          ? `✓ ${currentModalStats.fatwaCount} in DB`
+                          : "Untranslated"}
                       </span>
                     </div>
                   </SelectItem>

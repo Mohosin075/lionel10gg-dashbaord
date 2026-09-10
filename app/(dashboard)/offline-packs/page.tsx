@@ -446,53 +446,112 @@ export default function OfflinePacksPage() {
         </Card>
       </div>
 
-      {/* Quick Batch Actions & Filter Bar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
-        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
-          {((["all", "quran", "tafsir", "hadith", "dua", "knowledge", "book", "fatwa"]) as ModuleType[]).map((tab) => {
-            const count = getModuleBadgeCount(tab);
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveModule(tab)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold capitalize transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeModule === tab
-                    ? "bg-emerald-900 text-white shadow"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <span>{tab === "all" ? "All Modules" : tab}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    activeModule === tab
-                      ? "bg-emerald-800 text-emerald-100"
-                      : "bg-slate-200 text-slate-600"
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+      {/* Quick Batch Actions & Filter Bar (Dropdown Design) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
+          {/* Module Filter Dropdown */}
+          <div className="w-full sm:w-64">
+            <Select
+              value={activeModule}
+              onValueChange={(val: any) => setActiveModule(val)}
+            >
+              <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-xs font-semibold h-10 px-3 cursor-pointer">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="text-slate-400 font-normal">Filter:</span>
+                  <SelectValue placeholder="Select Module" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="all">
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <span className="font-semibold">All Modules</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full font-bold">
+                      {getModuleBadgeCount("all")}
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="quran">
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <span>📖 Quran (Ayahs)</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full font-bold">
+                      {getModuleBadgeCount("quran")}
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="tafsir">
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <span>📜 Tafsir (Exegesis)</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full font-bold">
+                      {getModuleBadgeCount("tafsir")}
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="hadith">
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <span>📚 Hadith (8 Books)</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full font-bold">
+                      {getModuleBadgeCount("hadith")}
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="dua">
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <span>🤲 Dua (Hisnul Muslim)</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full font-bold">
+                      {getModuleBadgeCount("dua")}
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="knowledge">
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <span>🧠 Knowledge Articles</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full font-bold">
+                      {getModuleBadgeCount("knowledge")}
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="book">
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <span>📚 Islamic Books</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full font-bold">
+                      {getModuleBadgeCount("book")}
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="fatwa">
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <span>⚖️ Islamic Fatwas</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full font-bold">
+                      {getModuleBadgeCount("fatwa")}
+                    </Badge>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Search Input */}
+          <div className="w-full sm:w-72">
+            <input
+              type="text"
+              placeholder="Search by language code or name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-10 px-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-800 transition-all"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <input
-            type="text"
-            placeholder="Search by language code or name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full md:w-64 px-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-800"
-          />
-
+        {/* Batch Action Button */}
+        <div className="w-full sm:w-auto flex justify-end">
           <Button
             variant="outline"
             size="sm"
             disabled={isBulkGenerating}
             onClick={handleQuickBatch}
-            className="text-xs rounded-xl text-emerald-900 border-emerald-300 hover:bg-emerald-50 whitespace-nowrap flex items-center gap-1.5 cursor-pointer font-medium"
+            className="w-full sm:w-auto h-10 text-xs rounded-xl text-emerald-900 border-emerald-300 hover:bg-emerald-50 whitespace-nowrap flex items-center justify-center gap-2 cursor-pointer font-semibold shadow-sm px-4"
           >
-            <Sparkles className={`h-3.5 w-3.5 ${isBulkGenerating ? "animate-spin text-emerald-600" : ""}`} />
+            <Sparkles className={`h-3.5 w-3.5 ${isBulkGenerating ? "animate-spin text-emerald-600" : "text-emerald-600"}`} />
             {isBulkGenerating ? "Batching..." : getBatchButtonLabel()}
           </Button>
         </div>
