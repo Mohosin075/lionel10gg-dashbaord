@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   DownloadCloud,
@@ -13,15 +13,16 @@ import {
   FileCheck,
   Layers,
   Sparkles,
-  ExternalLink,
+  Download,
   Zap,
-  ArrowRight,
   ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   useGetPacksQuery,
   useGeneratePackMutation,
+  useGetCoverageQuery,
   IOfflinePack,
 } from "@/redux/features/offline-pack/offlinePackApi";
 import { APP_LANGUAGES } from "@/lib/constants/languages";
@@ -48,17 +49,92 @@ type ModuleType = "all" | "hadith" | "dua" | "knowledge";
 
 export default function OfflinePacksPage() {
   const { data: packsRes, isLoading, refetch, isFetching } = useGetPacksQuery();
+  const { data: coverageRes, refetch: refetchCoverage } = useGetCoverageQuery();
   const [generatePack, { isLoading: isGenerating }] = useGeneratePackMutation();
 
   const [activeModule, setActiveModule] = useState<ModuleType>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLang, setSelectedLang] = useState("bn");
+  const [selectedLang, setSelectedLang] = useState("en");
   const [genModule, setGenModule] = useState<"hadith" | "dua" | "knowledge">("hadith");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [isBulkGenerating, setIsBulkGenerating] = useState(false);
 
   const packs = packsRes?.data || [];
+  const coverage = coverageRes?.data || {};
+
+  // Find which languages have data in MongoDB for a specific module
+  const getLangsWithData = (mod: "hadith" | "dua" | "knowledge") => {
+    return Object.entries(coverage)
+      .filter(([_, data]) => {
+        if (mod === "hadith") return (data.hadithCount || 0) > 0;
+        if (mod === "dua") return (data.duaCount || 0) > 0;
+        if (mod === "knowledge") return (data.knowledgeCount || 0) > 0;
+        return false;
+      })
+      .map(([lang, data]) => ({
+        lang,
+        count:
+          mod === "hadith"
+            ? data.hadithCount
+            : mod === "dua"
+            ? data.duaCount
+            : data.knowledgeCount,
+      }));
+  };
+
+  // Sort languages for the modal dropdown: ones with DB data first
+  const sortedLanguagesForModal = useMemo(() => {
+    return [...APP_LANGUAGES].sort((a, b) => {
+      const aData = coverage[a.code];
+      const bData = coverage[b.code];
+      const aCount =
+        genModule === "hadith"
+          ? aData?.hadithCount || 0
+          : genModule === "dua"
+          ? aData?.duaCount || 0
+          : aData?.knowledgeCount || 0;
+      const bCount =
+        genModule === "hadith"
+          ? bData?.hadithCount || 0
+          : genModule === "dua"
+          ? bData?.duaCount || 0
+          : bData?.knowledgeCount || 0;
+
+      if (aCount > 0 && bCount === 0) return -1;
+      if (bCount > 0 && aCount === 0) return 1;
+      if (aCount !== bCount) return bCount - aCount;
+      return a.name.localeCompare(b.name);
+    });
+  }, [coverage, genModule]);
+
+  // When genModule changes, auto-pick the first available language with records
+  useEffect(() => {
+    const available = sortedLanguagesForModal.find((l) => {
+      const cov = coverage[l.code];
+      const cnt =
+        genModule === "hadith"
+          ? cov?.hadithCount || 0
+          : genModule === "dua"
+          ? cov?.duaCount || 0
+          : cov?.knowledgeCount || 0;
+      return cnt > 0;
+    });
+    if (available) {
+      setSelectedLang(available.code);
+    }
+  }, [genModule, sortedLanguagesForModal, coverage]);
+
+  const selectedLangDbCount = useMemo(() => {
+    const cov = coverage[selectedLang];
+    return genModule === "hadith"
+      ? cov?.hadithCount || 0
+      : genModule === "dua"
+      ? cov?.duaCount || 0
+      : cov?.knowledgeCount || 0;
+  }, [coverage, selectedLang, genModule]);
+
+  const selectedLangObj = APP_LANGUAGES.find((l) => l.code === selectedLang);
 
   const filteredPacks = packs.filter((p) => {
     const matchesModule = activeModule === "all" || p.module === activeModule;
@@ -82,11 +158,17 @@ export default function OfflinePacksPage() {
   };
 
   const handleGenerate = async () => {
+    if (selectedLangDbCount === 0) {
+      toast.error(`Cannot generate pack: ${selectedLangObj?.name || selectedLang} has 0 records in MongoDB.`);
+      return;
+    }
+
     try {
       const res = await generatePack({ module: genModule, lang: selectedLang }).unwrap();
       toast.success(res.message || `${genModule.toUpperCase()} pack for [${selectedLang}] generated successfully!`);
       setIsModalOpen(false);
       refetch();
+      refetchCoverage();
     } catch (err: any) {
       toast.error(err?.data?.message || err?.message || "Failed to generate pack");
     }
@@ -98,28 +180,82 @@ export default function OfflinePacksPage() {
       await generatePack({ module: pack.module, lang: pack.lang }).unwrap();
       toast.success(`Updated ${pack.module} pack for ${pack.lang} to new version!`, { id: "regen" });
       refetch();
+      refetchCoverage();
     } catch (err: any) {
       toast.error(err?.data?.message || "Regeneration failed", { id: "regen" });
     }
   };
 
-  // Quick batch generator for top priority languages
-  const handleQuickBatch = async (moduleName: "hadith" | "dua" | "knowledge") => {
-    const topLangs = ["en", "bn", "ar", "ur", "tr", "id"];
-    setIsBulkGenerating(true);
-    toast.loading(`Generating ${moduleName} packs for top 6 languages...`, { id: "bulk" });
-    try {
-      for (const lang of topLangs) {
-        await generatePack({ module: moduleName, lang }).unwrap();
-      }
-      toast.success(`All 6 ${moduleName} packs generated and uploaded to S3!`, { id: "bulk" });
-      refetch();
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Bulk generation error", { id: "bulk" });
-    } finally {
-      setIsBulkGenerating(false);
+  // Safe dynamic batch generator: only targets languages with > 0 records in MongoDB
+  const handleQuickBatch = async () => {
+    let targets: { module: "hadith" | "dua" | "knowledge"; lang: string }[] = [];
+
+    if (activeModule === "all") {
+      const hadithLangs = getLangsWithData("hadith");
+      const duaLangs = getLangsWithData("dua");
+      const knowLangs = getLangsWithData("knowledge");
+      targets = [
+        ...hadithLangs.map((l) => ({ module: "hadith" as const, lang: l.lang })),
+        ...duaLangs.map((l) => ({ module: "dua" as const, lang: l.lang })),
+        ...knowLangs.map((l) => ({ module: "knowledge" as const, lang: l.lang })),
+      ];
+    } else {
+      const langs = getLangsWithData(activeModule);
+      targets = langs.map((l) => ({ module: activeModule, lang: l.lang }));
     }
+
+    if (targets.length === 0) {
+      toast.info("No languages with active database records found to batch.");
+      return;
+    }
+
+    setIsBulkGenerating(true);
+    toast.loading(`Compiling and publishing ${targets.length} packs...`, { id: "bulk" });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const t of targets) {
+      try {
+        await generatePack({ module: t.module, lang: t.lang }).unwrap();
+        successCount++;
+      } catch (err: any) {
+        console.error(`Pack generation failed for ${t.module}_${t.lang}:`, err);
+        errorCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Successfully published ${successCount} offline packs!`, { id: "bulk" });
+    } else {
+      toast.error(`Batch generation failed for ${errorCount} packs.`, { id: "bulk" });
+    }
+
+    setIsBulkGenerating(false);
+    refetch();
+    refetchCoverage();
   };
+
+  // Get active batch button label
+  const getBatchButtonLabel = () => {
+    if (activeModule === "all") {
+      const totalAvailable =
+        getLangsWithData("hadith").length +
+        getLangsWithData("dua").length +
+        getLangsWithData("knowledge").length;
+      return `Batch All Available (${totalAvailable})`;
+    }
+    const count = getLangsWithData(activeModule).length;
+    const modLabel = activeModule.charAt(0).toUpperCase() + activeModule.slice(1);
+    return `Batch ${modLabel} (${count} Available)`;
+  };
+
+  const getModuleBadgeCount = (mod: ModuleType) => {
+    if (mod === "all") return packs.length;
+    return packs.filter((p) => p.module === mod).length;
+  };
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASEURL || "http://localhost:5005";
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -145,7 +281,10 @@ export default function OfflinePacksPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => refetch()}
+            onClick={() => {
+              refetch();
+              refetchCoverage();
+            }}
             disabled={isFetching}
             className="flex items-center gap-2 rounded-xl"
           >
@@ -276,19 +415,31 @@ export default function OfflinePacksPage() {
       {/* Quick Batch Actions & Filter Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
-          {(["all", "hadith", "dua", "knowledge"] as ModuleType[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveModule(tab)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold capitalize transition-all cursor-pointer ${
-                activeModule === tab
-                  ? "bg-emerald-900 text-white shadow"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              {tab === "all" ? "All Modules" : tab}
-            </button>
-          ))}
+          {(["all", "hadith", "dua", "knowledge"] as ModuleType[]).map((tab) => {
+            const count = getModuleBadgeCount(tab);
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveModule(tab)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold capitalize transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeModule === tab
+                    ? "bg-emerald-900 text-white shadow"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <span>{tab === "all" ? "All Modules" : tab}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    activeModule === tab
+                      ? "bg-emerald-800 text-emerald-100"
+                      : "bg-slate-200 text-slate-600"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
@@ -304,10 +455,11 @@ export default function OfflinePacksPage() {
             variant="outline"
             size="sm"
             disabled={isBulkGenerating}
-            onClick={() => handleQuickBatch("hadith")}
-            className="text-xs rounded-xl text-emerald-900 border-emerald-200 hover:bg-emerald-50 whitespace-nowrap"
+            onClick={handleQuickBatch}
+            className="text-xs rounded-xl text-emerald-900 border-emerald-300 hover:bg-emerald-50 whitespace-nowrap flex items-center gap-1.5 cursor-pointer font-medium"
           >
-            Batch Hadith (Top 6)
+            <Sparkles className={`h-3.5 w-3.5 ${isBulkGenerating ? "animate-spin text-emerald-600" : ""}`} />
+            {isBulkGenerating ? "Batching..." : getBatchButtonLabel()}
           </Button>
         </div>
       </div>
@@ -324,11 +476,16 @@ export default function OfflinePacksPage() {
             <DownloadCloud className="h-12 w-12 text-slate-300" />
             <h3 className="text-base font-semibold text-slate-700">No Offline Packs Found</h3>
             <p className="text-xs text-slate-400 max-w-md">
-              Generate a pack using the button above to build and upload a production-ready SQLite-compatible gzip bundle.
+              {activeModule === "all"
+                ? "No offline packs generated yet. Use the button below to compile and publish your first pack."
+                : `No offline packs found for the ${activeModule} module. Generate one now from available database records.`}
             </p>
             <Button
-              onClick={() => setIsModalOpen(true)}
-              className="mt-2 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl text-xs"
+              onClick={() => {
+                if (activeModule !== "all") setGenModule(activeModule);
+                setIsModalOpen(true);
+              }}
+              className="mt-2 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl text-xs cursor-pointer"
             >
               Generate First Pack
             </Button>
@@ -351,6 +508,11 @@ export default function OfflinePacksPage() {
                 {filteredPacks.map((pack) => {
                   const langItem = APP_LANGUAGES.find((l) => l.code === pack.lang);
                   const isCopied = copiedHash === pack.sha256;
+                  const downloadUrl = pack.downloadUrl
+                    ? pack.downloadUrl.startsWith("http")
+                      ? pack.downloadUrl
+                      : `${baseUrl}${pack.downloadUrl}`
+                    : `${baseUrl}/api/v1/offline-pack/download/${pack.module}?lang=${pack.lang}`;
 
                   return (
                     <tr key={pack._id} className="hover:bg-slate-50/80 transition-colors">
@@ -430,17 +592,14 @@ export default function OfflinePacksPage() {
 
                       <td className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {pack.downloadUrl && (
-                            <a
-                              href={pack.downloadUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center cursor-pointer"
-                              title="Download Presigned Pack"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          )}
+                          <a
+                            href={downloadUrl}
+                            download
+                            className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center cursor-pointer"
+                            title="Download Gzip Bundle (.json.gz)"
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
 
                           <Button
                             variant="outline"
@@ -470,7 +629,7 @@ export default function OfflinePacksPage() {
               Generate Offline Pack
             </DialogTitle>
             <DialogDescription>
-              Select module and language to compile, compress (gzip level 9), compute SHA-256 hash, and upload directly to AWS S3.
+              Select module and language to compile, compress (gzip level 9), compute SHA-256 hash, and deploy bundle.
             </DialogDescription>
           </DialogHeader>
 
@@ -503,21 +662,62 @@ export default function OfflinePacksPage() {
                   <SelectValue placeholder="Select Language" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl max-h-60">
-                  {APP_LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name} ({lang.code})
-                    </SelectItem>
-                  ))}
+                  {sortedLanguagesForModal.map((lang) => {
+                    const cov = coverage[lang.code];
+                    const count =
+                      genModule === "hadith"
+                        ? cov?.hadithCount || 0
+                        : genModule === "dua"
+                        ? cov?.duaCount || 0
+                        : cov?.knowledgeCount || 0;
+
+                    return (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        <div className="flex items-center justify-between w-full gap-4">
+                          <span>
+                            {lang.name} ({lang.code})
+                          </span>
+                          {count > 0 ? (
+                            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                              {count.toLocaleString()} items
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-slate-400">
+                              0 items
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200/70 text-amber-900 text-xs flex items-start gap-2">
-              <span className="font-bold">Notice:</span>
-              <span>
-                Generating a pack automatically increments the version in the database. Mobile apps calling <code>/check-sync</code> will immediately detect the update.
-              </span>
-            </div>
+            {/* Live Database Readiness Notice */}
+            {selectedLangDbCount === 0 ? (
+              <div className="p-3.5 bg-rose-50 rounded-xl border border-rose-200 text-rose-900 text-xs flex items-start gap-2.5">
+                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-rose-800">No Records in MongoDB for {selectedLangObj?.name || selectedLang}</p>
+                  <p className="mt-0.5 text-rose-700">
+                    This language currently has 0 {genModule} items in the database. Please run AI translations first on the Translations page before creating an offline pack.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-xs flex items-start gap-2.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-emerald-800">
+                    {selectedLangDbCount.toLocaleString()} {genModule} items ready
+                  </p>
+                  <p className="mt-0.5 text-emerald-700">
+                    Bundle will be compressed with Level 9 Gzip and indexed with SHA-256 cryptographic checksum.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -531,16 +731,16 @@ export default function OfflinePacksPage() {
             </Button>
             <Button
               onClick={handleGenerate}
-              disabled={isGenerating}
-              className="bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl shadow cursor-pointer"
+              disabled={isGenerating || selectedLangDbCount === 0}
+              className="bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGenerating ? (
                 <div className="flex items-center gap-2">
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  Compiling &amp; Uploading...
+                  Compiling &amp; Bundling...
                 </div>
               ) : (
-                "Compile & Upload to S3"
+                "Compile & Publish Pack"
               )}
             </Button>
           </DialogFooter>

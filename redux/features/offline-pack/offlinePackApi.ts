@@ -74,6 +74,21 @@ export const offlinePackApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["BatchTranslation", "OfflinePack", "Hadith", "Dua"],
     }),
+    getCoverage: builder.query<{
+      success: boolean;
+      data: Record<string, {
+        hadithCount: number;
+        duaCount: number;
+        knowledgeCount: number;
+        hadithPack?: any;
+        duaPack?: any;
+        knowledgePack?: any;
+        activeJobs?: Record<string, any>;
+      }>;
+    }, void>({
+      query: () => "/offline-pack/coverage",
+      providesTags: ["BatchTranslation", "OfflinePack"],
+    }),
   }),
 });
 
@@ -84,4 +99,5 @@ export const {
   useStartBatchTranslationMutation,
   useGetBatchStatusQuery,
   useProcessBatchResultMutation,
+  useGetCoverageQuery,
 } = offlinePackApi;

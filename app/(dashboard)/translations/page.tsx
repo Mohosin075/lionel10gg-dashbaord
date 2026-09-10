@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Languages,
   Sparkles,
@@ -14,6 +15,8 @@ import {
   Search,
   Check,
   Coins,
+  AlertTriangle,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -21,6 +24,7 @@ import {
   useStartBatchTranslationMutation,
   useProcessBatchResultMutation,
   useGetPacksQuery,
+  useGetCoverageQuery,
 } from "@/redux/features/offline-pack/offlinePackApi";
 import { APP_LANGUAGES } from "@/lib/constants/languages";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -44,11 +48,21 @@ import {
 } from "@/components/ui/select";
 
 export default function TranslationsPage() {
-  const { data: jobsRes, isLoading: isLoadingJobs, refetch: refetchJobs, isFetching } = useGetBatchJobsQuery(
-    undefined,
-    { pollingInterval: 15000 }
-  );
-  const { data: packsRes } = useGetPacksQuery();
+  const {
+    data: jobsRes,
+    isLoading: isLoadingJobs,
+    refetch: refetchJobs,
+    isFetching: isFetchingJobs,
+  } = useGetBatchJobsQuery(undefined, { pollingInterval: 15000 });
+
+  const { data: packsRes, refetch: refetchPacks } = useGetPacksQuery();
+
+  const {
+    data: coverageRes,
+    refetch: refetchCoverage,
+    isFetching: isFetchingCoverage,
+  } = useGetCoverageQuery(undefined, { pollingInterval: 15000 });
+
   const [startBatch, { isLoading: isStartingBatch }] = useStartBatchTranslationMutation();
   const [processBatch, { isLoading: isProcessingBatch }] = useProcessBatchResultMutation();
 
@@ -56,28 +70,96 @@ export default function TranslationsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLang, setSelectedLang] = useState("bn");
   const [selectedModule, setSelectedModule] = useState<"hadith" | "dua" | "knowledge">("hadith");
-  const [calcLangsCount, setCalcLangsCount] = useState(10);
+  const [confirmRetranslate, setConfirmRetranslate] = useState(false);
 
   const jobs = jobsRes?.data || [];
   const packs = packsRes?.data || [];
+  const coverage = coverageRes?.data || {};
 
-  const activeJobs = jobs.filter((j) => j.status === "in_progress" || j.status === "completed");
+  const activeJobs = jobs.filter(
+    (j) => j.status === "in_progress" || j.status === "completed"
+  );
   const completedJobs = jobs.filter((j) => j.status === "processed");
 
-  const filteredLanguages = APP_LANGUAGES.filter(
-    (l) =>
-      l.name.toLowerCase().includes(searchLang.toLowerCase()) ||
-      l.code.toLowerCase().includes(searchLang.toLowerCase())
-  );
+  const filteredLanguages = useMemo(() => {
+    return APP_LANGUAGES.filter(
+      (l) =>
+        l.name.toLowerCase().includes(searchLang.toLowerCase()) ||
+        l.code.toLowerCase().includes(searchLang.toLowerCase())
+    );
+  }, [searchLang]);
+
+  // Check language module coverage helper
+  const getLangStats = (code: string) => {
+    const langCoverage = coverage[code] || {
+      hadithCount: 0,
+      duaCount: 0,
+      knowledgeCount: 0,
+    };
+
+    const hadithPack = packs.find((p) => p.module === "hadith" && p.lang === code);
+    const duaPack = packs.find((p) => p.module === "dua" && p.lang === code);
+    const knowledgePack = packs.find((p) => p.module === "knowledge" && p.lang === code);
+
+    const hadithJob = jobs.find((j) => j.targetLang === code && j.module === "hadith");
+    const duaJob = jobs.find((j) => j.targetLang === code && j.module === "dua");
+    const knowledgeJob = jobs.find((j) => j.targetLang === code && j.module === "knowledge");
+
+    return {
+      hadithCount: langCoverage.hadithCount || 0,
+      duaCount: langCoverage.duaCount || 0,
+      knowledgeCount: langCoverage.knowledgeCount || 0,
+      hadithPack,
+      duaPack,
+      knowledgePack,
+      hadithJob,
+      duaJob,
+      knowledgeJob,
+      isSource: code.toLowerCase() === "en",
+    };
+  };
+
+  const openModalForLang = (langCode: string) => {
+    if (langCode.toLowerCase() === "en") {
+      toast.info("English is the primary source language and does not require translation.");
+      return;
+    }
+    setSelectedLang(langCode);
+    setConfirmRetranslate(false);
+
+    // Automatically pick the first untranslated module
+    const stats = getLangStats(langCode);
+    if (stats.hadithCount === 0 && !stats.hadithPack) {
+      setSelectedModule("hadith");
+    } else if (stats.duaCount === 0 && !stats.duaPack) {
+      setSelectedModule("dua");
+    } else if (stats.knowledgeCount === 0 && !stats.knowledgePack) {
+      setSelectedModule("knowledge");
+    } else {
+      setSelectedModule("hadith");
+    }
+
+    setIsModalOpen(true);
+  };
+
+  const handleRefreshAll = () => {
+    refetchJobs();
+    refetchPacks();
+    refetchCoverage();
+    toast.success("Synchronizing status with OpenAI & MongoDB...");
+  };
 
   const handleStartBatch = async () => {
     try {
       const res = await startBatch({ module: selectedModule, targetLang: selectedLang }).unwrap();
       toast.success(
-        `OpenAI Batch job started for ${selectedModule.toUpperCase()} [${selectedLang}]! Estimated time: ${res.data?.estimatedMinutes || 30} mins`
+        `OpenAI Batch job started for ${selectedModule.toUpperCase()} [${selectedLang}]! Estimated completion: ${
+          res.data?.estimatedMinutes || 20
+        } mins`
       );
       setIsModalOpen(false);
       refetchJobs();
+      refetchCoverage();
     } catch (err: any) {
       toast.error(err?.data?.message || err?.message || "Failed to start batch translation");
     }
@@ -92,10 +174,27 @@ export default function TranslationsPage() {
         { id: jobId }
       );
       refetchJobs();
+      refetchCoverage();
     } catch (err: any) {
       toast.error(err?.data?.message || "Failed to process results", { id: jobId });
     }
   };
+
+  // Check if current selection in modal is already translated
+  const currentModalStats = getLangStats(selectedLang);
+  const isSelectedModuleAlreadyDone =
+    selectedModule === "hadith"
+      ? currentModalStats.hadithCount > 0 || Boolean(currentModalStats.hadithPack)
+      : selectedModule === "dua"
+      ? currentModalStats.duaCount > 0 || Boolean(currentModalStats.duaPack)
+      : currentModalStats.knowledgeCount > 0 || Boolean(currentModalStats.knowledgePack);
+
+  const selectedModuleCount =
+    selectedModule === "hadith"
+      ? currentModalStats.hadithCount
+      : selectedModule === "dua"
+      ? currentModalStats.duaCount
+      : currentModalStats.knowledgeCount;
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -111,7 +210,7 @@ export default function TranslationsPage() {
                 Batch Translation Manager
               </h1>
               <p className="text-sm text-slate-500">
-                109-language AI translation matrix powered by OpenAI Batch API (50% cost reduction)
+                109-language AI translation matrix with live MongoDB sync and OpenAI Batch API
               </p>
             </div>
           </div>
@@ -121,25 +220,29 @@ export default function TranslationsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => refetchJobs()}
-            disabled={isFetching}
-            className="flex items-center gap-2 rounded-xl"
+            onClick={handleRefreshAll}
+            disabled={isFetchingJobs || isFetchingCoverage}
+            className="flex items-center gap-2 rounded-xl text-xs"
           >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${
+                isFetchingJobs || isFetchingCoverage ? "animate-spin" : ""
+              }`}
+            />
             Refresh Status
           </Button>
 
           <Button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-emerald-900 hover:bg-emerald-800 text-white flex items-center gap-2 rounded-xl shadow cursor-pointer"
+            onClick={() => openModalForLang("bn")}
+            className="bg-emerald-900 hover:bg-emerald-800 text-white flex items-center gap-2 rounded-xl shadow cursor-pointer text-xs"
           >
-            <Play className="h-4 w-4 fill-white" />
+            <Play className="h-3.5 w-3.5 fill-white" />
             Start New Translation
           </Button>
         </div>
       </div>
 
-      {/* Interactive Cost Estimator & Overview */}
+      {/* Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <Card className="rounded-2xl border-slate-200/90 shadow-sm bg-gradient-to-br from-white to-slate-50">
           <CardHeader className="pb-2">
@@ -163,20 +266,22 @@ export default function TranslationsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-xs font-medium text-amber-600">OpenAI processing in background</span>
+            <span className="text-xs font-medium text-amber-600">
+              {activeJobs.length === 0 ? "No active jobs running" : "OpenAI auto-polling active"}
+            </span>
           </CardContent>
         </Card>
 
         <Card className="rounded-2xl border-slate-200/90 shadow-sm bg-gradient-to-br from-white to-slate-50">
           <CardHeader className="pb-2">
-            <CardDescription className="text-slate-500 font-medium">Completed &amp; Saved</CardDescription>
+            <CardDescription className="text-slate-500 font-medium">Completed &amp; Ingested</CardDescription>
             <CardTitle className="text-3xl font-extrabold text-slate-900 flex items-center justify-between">
               {completedJobs.length}
               <CheckCircle2 className="h-6 w-6 text-emerald-600 opacity-70" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-xs font-medium text-emerald-600">Ingested into MongoDB</span>
+            <span className="text-xs font-medium text-emerald-600">Saved to MongoDB</span>
           </CardContent>
         </Card>
 
@@ -194,7 +299,7 @@ export default function TranslationsPage() {
         </Card>
       </div>
 
-      {/* Active Jobs Section */}
+      {/* Recent Jobs Section */}
       {jobs.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between">
@@ -203,7 +308,7 @@ export default function TranslationsPage() {
                 <Clock className="h-5 w-5 text-amber-600" />
                 Recent OpenAI Batch Jobs
               </h2>
-              <p className="text-xs text-slate-500">Live progress tracking via OpenAI Batch polling</p>
+              <p className="text-xs text-slate-500">Live progress tracking via OpenAI Batch auto-sync</p>
             </div>
             <span className="text-xs text-slate-400 font-mono">Auto-refreshes every 15s</span>
           </div>
@@ -217,7 +322,10 @@ export default function TranslationsPage() {
                   : 0;
 
               return (
-                <div key={job._id} className="py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div
+                  key={job._id}
+                  className="py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-800 text-sm">
@@ -276,12 +384,12 @@ export default function TranslationsPage() {
                     )}
 
                     {job.status === "processed" && (
-                      <a
+                      <Link
                         href="/offline-packs"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:underline"
                       >
                         Generate Pack <ArrowRight className="h-3.5 w-3.5" />
-                      </a>
+                      </Link>
                     )}
                   </div>
                 </div>
@@ -291,12 +399,14 @@ export default function TranslationsPage() {
         </div>
       )}
 
-      {/* 109 Languages Matrix */}
+      {/* 109 Languages Coverage Matrix */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-base font-bold text-slate-900">109 Languages Coverage Matrix</h2>
-            <p className="text-xs text-slate-500">Monitor readiness and launch batch translations for each language</p>
+            <p className="text-xs text-slate-500">
+              Live status from MongoDB &amp; S3. Completed modules are highlighted so you never duplicate translations.
+            </p>
           </div>
           <div className="relative w-full sm:w-72">
             <Search className="h-4 w-4 absolute left-3 top-3 text-slate-400" />
@@ -316,22 +426,28 @@ export default function TranslationsPage() {
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 <th className="py-4 px-6">Language</th>
                 <th className="py-4 px-6">ISO Code</th>
-                <th className="py-4 px-6">Hadith Pack</th>
-                <th className="py-4 px-6">Dua Pack</th>
-                <th className="py-4 px-6">Knowledge Pack</th>
+                <th className="py-4 px-6">Hadith Collection</th>
+                <th className="py-4 px-6">Dua Collection</th>
+                <th className="py-4 px-6">Knowledge Library</th>
                 <th className="py-4 px-6">Cost Estimate</th>
                 <th className="py-4 px-6 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {filteredLanguages.map((lang) => {
-                const hadithPack = packs.find((p) => p.module === "hadith" && p.lang === lang.code);
-                const duaPack = packs.find((p) => p.module === "dua" && p.lang === lang.code);
-                const knowledgePack = packs.find((p) => p.module === "knowledge" && p.lang === lang.code);
+                const stats = getLangStats(lang.code);
+                const isEng = stats.isSource;
 
-                const activeLangJob = jobs.find(
-                  (j) => j.targetLang === lang.code && (j.status === "in_progress" || j.status === "completed")
-                );
+                // Check overall readiness
+                const allModulesReady =
+                  (stats.hadithCount > 0 || stats.hadithPack) &&
+                  (stats.duaCount > 0 || stats.duaPack) &&
+                  (stats.knowledgeCount > 0 || stats.knowledgePack);
+
+                const hasActiveJob =
+                  (stats.hadithJob && (stats.hadithJob.status === "in_progress" || stats.hadithJob.status === "completed")) ||
+                  (stats.duaJob && (stats.duaJob.status === "in_progress" || stats.duaJob.status === "completed")) ||
+                  (stats.knowledgeJob && (stats.knowledgeJob.status === "in_progress" || stats.knowledgeJob.status === "completed"));
 
                 return (
                   <tr key={lang.code} className="hover:bg-slate-50/80 transition-colors">
@@ -345,33 +461,87 @@ export default function TranslationsPage() {
                       </span>
                     </td>
 
+                    {/* HADITH MODULE */}
                     <td className="py-4 px-6">
-                      {hadithPack ? (
-                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-200 text-xs flex items-center gap-1 w-fit">
-                          <Check className="h-3 w-3" /> Ready v{hadithPack.version}
+                      {isEng ? (
+                        <Badge className="bg-slate-100 text-slate-700 text-xs font-medium">
+                          Source (36,432)
+                        </Badge>
+                      ) : stats.hadithPack ? (
+                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs flex items-center gap-1 w-fit">
+                          <Check className="h-3 w-3" /> Pack v{stats.hadithPack.version} Live
+                        </Badge>
+                      ) : stats.hadithCount > 0 ? (
+                        <div className="space-y-0.5">
+                          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-xs flex items-center gap-1 w-fit">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {stats.hadithCount} in DB
+                          </Badge>
+                          <Link href="/offline-packs" className="text-[11px] text-emerald-700 font-semibold hover:underline block">
+                            Create Pack →
+                          </Link>
+                        </div>
+                      ) : stats.hadithJob?.status === "in_progress" ? (
+                        <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs animate-pulse">
+                          ⏳ Translating
                         </Badge>
                       ) : (
-                        <span className="text-xs text-slate-400">Not Packaged</span>
+                        <span className="text-xs text-slate-400">Not Translated</span>
                       )}
                     </td>
 
+                    {/* DUA MODULE */}
                     <td className="py-4 px-6">
-                      {duaPack ? (
-                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-200 text-xs flex items-center gap-1 w-fit">
-                          <Check className="h-3 w-3" /> Ready v{duaPack.version}
+                      {isEng ? (
+                        <Badge className="bg-slate-100 text-slate-700 text-xs font-medium">
+                          Source (264)
+                        </Badge>
+                      ) : stats.duaPack ? (
+                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs flex items-center gap-1 w-fit">
+                          <Check className="h-3 w-3" /> Pack v{stats.duaPack.version} Live
+                        </Badge>
+                      ) : stats.duaCount > 0 ? (
+                        <div className="space-y-0.5">
+                          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-xs flex items-center gap-1 w-fit">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {stats.duaCount} in DB
+                          </Badge>
+                          <Link href="/offline-packs" className="text-[11px] text-emerald-700 font-semibold hover:underline block">
+                            Create Pack →
+                          </Link>
+                        </div>
+                      ) : stats.duaJob?.status === "in_progress" ? (
+                        <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs animate-pulse">
+                          ⏳ Translating
                         </Badge>
                       ) : (
-                        <span className="text-xs text-slate-400">Not Packaged</span>
+                        <span className="text-xs text-slate-400">Not Translated</span>
                       )}
                     </td>
 
+                    {/* KNOWLEDGE MODULE */}
                     <td className="py-4 px-6">
-                      {knowledgePack ? (
-                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-200 text-xs flex items-center gap-1 w-fit">
-                          <Check className="h-3 w-3" /> Ready v{knowledgePack.version}
+                      {isEng ? (
+                        <Badge className="bg-slate-100 text-slate-700 text-xs font-medium">
+                          Source
+                        </Badge>
+                      ) : stats.knowledgePack ? (
+                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs flex items-center gap-1 w-fit">
+                          <Check className="h-3 w-3" /> Pack v{stats.knowledgePack.version} Live
+                        </Badge>
+                      ) : stats.knowledgeCount > 0 ? (
+                        <div className="space-y-0.5">
+                          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-xs flex items-center gap-1 w-fit">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {stats.knowledgeCount} in DB
+                          </Badge>
+                          <Link href="/offline-packs" className="text-[11px] text-emerald-700 font-semibold hover:underline block">
+                            Create Pack →
+                          </Link>
+                        </div>
+                      ) : stats.knowledgeJob?.status === "in_progress" ? (
+                        <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs animate-pulse">
+                          ⏳ Translating
                         </Badge>
                       ) : (
-                        <span className="text-xs text-slate-400">Not Packaged</span>
+                        <span className="text-xs text-slate-400">Not Translated</span>
                       )}
                     </td>
 
@@ -379,20 +549,29 @@ export default function TranslationsPage() {
                       ~৳18 <span className="text-slate-400">($0.15)</span>
                     </td>
 
+                    {/* ACTION COLUMN */}
                     <td className="py-4 px-6 text-right">
-                      {activeLangJob ? (
+                      {isEng ? (
+                        <span className="text-xs font-medium text-slate-400">
+                          Source Language
+                        </span>
+                      ) : hasActiveJob ? (
                         <Badge className="bg-amber-100 text-amber-900 text-xs animate-pulse">
-                          {activeLangJob.status === "completed" ? "Ready" : "Translating..."}
+                          Translating...
                         </Badge>
+                      ) : allModulesReady ? (
+                        <Link
+                          href="/offline-packs"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg hover:bg-emerald-100 transition-colors"
+                        >
+                          <Package className="h-3.5 w-3.5" /> All Ready
+                        </Link>
                       ) : (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setSelectedLang(lang.code);
-                            setIsModalOpen(true);
-                          }}
-                          className="text-xs rounded-xl hover:bg-blue-50 hover:text-blue-900 border-slate-200 cursor-pointer"
+                          onClick={() => openModalForLang(lang.code)}
+                          className="text-xs rounded-xl hover:bg-emerald-50 hover:text-emerald-900 border-slate-200 cursor-pointer"
                         >
                           Translate
                         </Button>
@@ -406,66 +585,148 @@ export default function TranslationsPage() {
         </div>
       </div>
 
-      {/* Start Batch Translation Modal */}
+      {/* Start Batch Translation Modal with Redundancy Protection */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-lg rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Sparkles className="h-5 w-5 text-blue-600" />
               Start OpenAI Batch Translation
             </DialogTitle>
             <DialogDescription>
-              Launch an asynchronous batch translation job via OpenAI gpt-4o-mini. Results will be ready within 1-2 hours at 50% discount.
+              Launch an asynchronous batch translation job via OpenAI GPT-4o-mini at 50% discount.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-3">
+            {/* Target Language */}
+            <div>
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider block mb-1.5">
+                Target Language
+              </label>
+              <Select
+                value={selectedLang}
+                onValueChange={(val) => {
+                  setSelectedLang(val);
+                  setConfirmRetranslate(false);
+                }}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Select Target Language" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl max-h-60">
+                  {APP_LANGUAGES.filter((l) => l.code.toLowerCase() !== "en").map((lang) => {
+                    const lStats = getLangStats(lang.code);
+                    const doneCount =
+                      (lStats.hadithCount > 0 ? 1 : 0) +
+                      (lStats.duaCount > 0 ? 1 : 0) +
+                      (lStats.knowledgeCount > 0 ? 1 : 0);
+
+                    return (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        <div className="flex items-center justify-between w-full gap-3">
+                          <span>
+                            {lang.name} ({lang.code})
+                          </span>
+                          {doneCount > 0 && (
+                            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">
+                              {doneCount}/3 Done
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Module Selector with Database Status */}
             <div>
               <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider block mb-1.5">
                 Module to Translate
               </label>
               <Select
                 value={selectedModule}
-                onValueChange={(val: "hadith" | "dua" | "knowledge") => setSelectedModule(val)}
+                onValueChange={(val: "hadith" | "dua" | "knowledge") => {
+                  setSelectedModule(val);
+                  setConfirmRetranslate(false);
+                }}
               >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Select Module" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="hadith">Hadith Collection (English source)</SelectItem>
-                  <SelectItem value="dua">Dua Collection (English source)</SelectItem>
-                  <SelectItem value="knowledge">Knowledge Library (English source)</SelectItem>
+                  <SelectItem value="hadith">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>Hadith Collection</span>
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {currentModalStats.hadithCount > 0
+                          ? `✓ ${currentModalStats.hadithCount} in DB (Done)`
+                          : "Untranslated (0 in DB)"}
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="dua">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>Dua Collection</span>
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {currentModalStats.duaCount > 0
+                          ? `✓ ${currentModalStats.duaCount} in DB (Done)`
+                          : "Untranslated (0 in DB)"}
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="knowledge">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>Knowledge Library</span>
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {currentModalStats.knowledgeCount > 0
+                          ? `✓ ${currentModalStats.knowledgeCount} in DB (Done)`
+                          : "Untranslated (0 in DB)"}
+                      </span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider block mb-1.5">
-                Target Language
-              </label>
-              <Select value={selectedLang} onValueChange={setSelectedLang}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Select Target Language" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl max-h-60">
-                  {APP_LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name} ({lang.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* REDUNDANCY WARNING BANNER IF ALREADY TRANSLATED */}
+            {isSelectedModuleAlreadyDone ? (
+              <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-300 text-amber-900 text-xs space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">
+                      {selectedModule.toUpperCase()} is already translated in MongoDB ({selectedModuleCount} records)!
+                    </p>
+                    <p className="text-amber-700 text-[11px] mt-0.5">
+                      You do <strong>not</strong> need to translate it again. Translating again will consume OpenAI tokens and overwrite existing database records.
+                    </p>
+                  </div>
+                </div>
 
-            <div className="p-3.5 bg-blue-50 rounded-xl border border-blue-200/70 text-blue-900 text-xs space-y-1">
-              <p className="font-bold flex items-center gap-1.5">
-                <Coins className="h-3.5 w-3.5" />
-                Estimated Batch Cost: ~৳18 BDT ($0.15 USD)
-              </p>
-              <p className="text-blue-700">
-                Preserves Islamic terms (Allah, Sahih, Hadith) automatically. Once complete, click &quot;Process &amp; Save&quot; to ingest into MongoDB.
-              </p>
-            </div>
+                <label className="flex items-center gap-2 cursor-pointer pt-1 text-amber-950 font-semibold text-[11px]">
+                  <input
+                    type="checkbox"
+                    checked={confirmRetranslate}
+                    onChange={(e) => setConfirmRetranslate(e.target.checked)}
+                    className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                  />
+                  <span>Yes, I want to re-translate and overwrite existing translations</span>
+                </label>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-blue-50 rounded-xl border border-blue-200/70 text-blue-900 text-xs space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <Coins className="h-3.5 w-3.5" />
+                  Estimated Batch Cost: ~৳18 BDT ($0.15 USD)
+                </p>
+                <p className="text-blue-700 text-[11px]">
+                  Preserves Islamic terms (Allah, Sahih, Hadith). Once completed by OpenAI, it will automatically save into MongoDB.
+                </p>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -477,16 +738,23 @@ export default function TranslationsPage() {
             >
               Cancel
             </Button>
+
             <Button
               onClick={handleStartBatch}
-              disabled={isStartingBatch}
-              className="bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl shadow cursor-pointer"
+              disabled={isStartingBatch || (isSelectedModuleAlreadyDone && !confirmRetranslate)}
+              className={`rounded-xl shadow cursor-pointer text-white font-medium ${
+                isSelectedModuleAlreadyDone
+                  ? "bg-amber-600 hover:bg-amber-700"
+                  : "bg-emerald-900 hover:bg-emerald-800"
+              }`}
             >
               {isStartingBatch ? (
                 <div className="flex items-center gap-2">
                   <RefreshCw className="h-4 w-4 animate-spin" />
                   Starting Batch Job...
                 </div>
+              ) : isSelectedModuleAlreadyDone ? (
+                "Re-translate & Overwrite"
               ) : (
                 "Launch OpenAI Batch Job"
               )}
