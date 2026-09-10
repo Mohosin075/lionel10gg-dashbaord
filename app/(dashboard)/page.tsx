@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import BookmarkedVerses from "@/components/dashboard/home/bookmarked-verses";
 import EngagementSummary from "@/components/dashboard/home/engagement-summary";
 import MonthlyActiveUsers from "@/components/dashboard/home/monthly-active-users";
@@ -14,6 +15,12 @@ import {
   Download,
   MousePointerClick,
   Users,
+  DownloadCloud,
+  Languages,
+  BookText,
+  Heart,
+  ArrowUpRight,
+  Settings,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -62,11 +69,88 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <PageHeader
-        title="App Analytics"
-        description="Track user activity, engagement, and subscription overview"
+        title="Quran International Command Center"
+        description="Real-time telemetry, offline pack publishing, 109-language AI translation, and subscriber metrics"
       />
+
+      {/* Quick Action & Content Sync Banner */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link
+          href="/offline-packs"
+          className="p-5 rounded-2xl bg-gradient-to-br from-emerald-900 to-emerald-950 text-white shadow-md hover:shadow-lg transition-all group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="p-2.5 bg-emerald-800/80 rounded-xl">
+              <DownloadCloud className="h-5 w-5 text-emerald-200" />
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-emerald-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+          <div className="mt-4">
+            <span className="text-2xl font-bold block">
+              {analytics?.totalOfflinePacks?.toLocaleString?.() ?? 0}
+            </span>
+            <span className="text-xs text-emerald-200 font-medium">Offline Packs Published</span>
+          </div>
+        </Link>
+
+        <Link
+          href="/translations"
+          className="p-5 rounded-2xl bg-gradient-to-br from-blue-900 to-blue-950 text-white shadow-md hover:shadow-lg transition-all group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="p-2.5 bg-blue-800/80 rounded-xl">
+              <Languages className="h-5 w-5 text-blue-200" />
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-blue-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+          <div className="mt-4">
+            <span className="text-2xl font-bold block">
+              109 Lng
+            </span>
+            <span className="text-xs text-blue-200 font-medium">
+              {analytics?.activeBatchJobs ? `${analytics.activeBatchJobs} jobs active` : "Batch AI Translations"}
+            </span>
+          </div>
+        </Link>
+
+        <Link
+          href="/hadith"
+          className="p-5 rounded-2xl bg-gradient-to-br from-amber-900 to-amber-950 text-white shadow-md hover:shadow-lg transition-all group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="p-2.5 bg-amber-800/80 rounded-xl">
+              <BookText className="h-5 w-5 text-amber-200" />
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-amber-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+          <div className="mt-4">
+            <span className="text-2xl font-bold block">
+              {analytics?.totalHadiths?.toLocaleString?.() ?? "8 Books"}
+            </span>
+            <span className="text-xs text-amber-200 font-medium">Hadiths in Database</span>
+          </div>
+        </Link>
+
+        <Link
+          href="/duas"
+          className="p-5 rounded-2xl bg-gradient-to-br from-purple-900 to-purple-950 text-white shadow-md hover:shadow-lg transition-all group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="p-2.5 bg-purple-800/80 rounded-xl">
+              <Heart className="h-5 w-5 text-purple-200" />
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-purple-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+          <div className="mt-4">
+            <span className="text-2xl font-bold block">
+              {analytics?.totalDuas?.toLocaleString?.() ?? "Hisn al-Muslim"}
+            </span>
+            <span className="text-xs text-purple-200 font-medium">Supplications &amp; Duas</span>
+          </div>
+        </Link>
+      </div>
 
       {isLoading ? (
         <p className="text-sm text-slate-500">Loading analytics...</p>

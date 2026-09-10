@@ -40,6 +40,11 @@ export const baseApi = createApi({
     "Knowledge",
     "Sheikh",
     "Benefit",
+    "OfflinePack",
+    "BatchTranslation",
+    "Hadith",
+    "Dua",
+    "AppConfig",
   ],
   endpoints: () => ({}),
 });
