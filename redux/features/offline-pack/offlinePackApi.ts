@@ -2,7 +2,7 @@ import { baseApi } from "../baseApi";
 
 export interface IOfflinePack {
   _id: string;
-  module: "hadith" | "dua" | "knowledge";
+  module: "hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa";
   lang: string;
   version: number;
   sha256: string;
@@ -17,7 +17,7 @@ export interface IBatchJob {
   _id: string;
   batchId: string;
   fileId: string;
-  module: "hadith" | "dua" | "knowledge";
+  module: "hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa";
   targetLang: string;
   status: "in_progress" | "validating" | "finalizing" | "cancelling" | "cancelled" | "completed" | "failed" | "processed";
   recordCount: number;
@@ -90,9 +90,17 @@ export const offlinePackApi = baseApi.injectEndpoints({
         hadithCount: number;
         duaCount: number;
         knowledgeCount: number;
+        quranCount?: number;
+        tafsirCount?: number;
+        bookCount?: number;
+        fatwaCount?: number;
         hadithPack?: any;
         duaPack?: any;
         knowledgePack?: any;
+        quranPack?: any;
+        tafsirPack?: any;
+        bookPack?: any;
+        fatwaPack?: any;
         activeJobs?: Record<string, any>;
       }>;
     }, void>({

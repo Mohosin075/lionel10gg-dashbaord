@@ -45,7 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type ModuleType = "all" | "hadith" | "dua" | "knowledge";
+type ModuleType = "all" | "quran" | "tafsir" | "hadith" | "dua" | "knowledge" | "book" | "fatwa";
 
 export default function OfflinePacksPage() {
   const { data: packsRes, isLoading, refetch, isFetching } = useGetPacksQuery();
@@ -55,7 +55,7 @@ export default function OfflinePacksPage() {
   const [activeModule, setActiveModule] = useState<ModuleType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLang, setSelectedLang] = useState("en");
-  const [genModule, setGenModule] = useState<"hadith" | "dua" | "knowledge">("hadith");
+  const [genModule, setGenModule] = useState<"hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa">("hadith");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [isBulkGenerating, setIsBulkGenerating] = useState(false);
@@ -64,12 +64,16 @@ export default function OfflinePacksPage() {
   const coverage = coverageRes?.data || {};
 
   // Find which languages have data in MongoDB for a specific module
-  const getLangsWithData = (mod: "hadith" | "dua" | "knowledge") => {
+  const getLangsWithData = (mod: "hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa") => {
     return Object.entries(coverage)
       .filter(([_, data]) => {
         if (mod === "hadith") return (data.hadithCount || 0) > 0;
         if (mod === "dua") return (data.duaCount || 0) > 0;
         if (mod === "knowledge") return (data.knowledgeCount || 0) > 0;
+        if (mod === "quran") return (data.quranCount || 0) > 0;
+        if (mod === "tafsir") return (data.tafsirCount || 0) > 0;
+        if (mod === "book") return (data.bookCount || 0) > 0;
+        if (mod === "fatwa") return (data.fatwaCount || 0) > 0;
         return false;
       })
       .map(([lang, data]) => ({
@@ -79,6 +83,14 @@ export default function OfflinePacksPage() {
             ? data.hadithCount
             : mod === "dua"
             ? data.duaCount
+            : mod === "quran"
+            ? data.quranCount
+            : mod === "tafsir"
+            ? data.tafsirCount
+            : mod === "book"
+            ? data.bookCount
+            : mod === "fatwa"
+            ? data.fatwaCount
             : data.knowledgeCount,
       }));
   };
@@ -188,16 +200,24 @@ export default function OfflinePacksPage() {
 
   // Safe dynamic batch generator: only targets languages with > 0 records in MongoDB
   const handleQuickBatch = async () => {
-    let targets: { module: "hadith" | "dua" | "knowledge"; lang: string }[] = [];
+    let targets: { module: "hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa"; lang: string }[] = [];
 
     if (activeModule === "all") {
       const hadithLangs = getLangsWithData("hadith");
       const duaLangs = getLangsWithData("dua");
       const knowLangs = getLangsWithData("knowledge");
+      const quranLangs = getLangsWithData("quran");
+      const tafsirLangs = getLangsWithData("tafsir");
+      const bookLangs = getLangsWithData("book");
+      const fatwaLangs = getLangsWithData("fatwa");
       targets = [
         ...hadithLangs.map((l) => ({ module: "hadith" as const, lang: l.lang })),
         ...duaLangs.map((l) => ({ module: "dua" as const, lang: l.lang })),
         ...knowLangs.map((l) => ({ module: "knowledge" as const, lang: l.lang })),
+        ...quranLangs.map((l) => ({ module: "quran" as const, lang: l.lang })),
+        ...tafsirLangs.map((l) => ({ module: "tafsir" as const, lang: l.lang })),
+        ...bookLangs.map((l) => ({ module: "book" as const, lang: l.lang })),
+        ...fatwaLangs.map((l) => ({ module: "fatwa" as const, lang: l.lang })),
       ];
     } else {
       const langs = getLangsWithData(activeModule);
@@ -640,7 +660,7 @@ export default function OfflinePacksPage() {
               </label>
               <Select
                 value={genModule}
-                onValueChange={(val: "hadith" | "dua" | "knowledge") => setGenModule(val)}
+                onValueChange={(val: any) => setGenModule(val)}
               >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Select Module" />
