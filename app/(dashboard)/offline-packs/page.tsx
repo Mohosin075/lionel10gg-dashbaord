@@ -129,6 +129,14 @@ export default function OfflinePacksPage() {
           ? cov?.hadithCount || 0
           : genModule === "dua"
           ? cov?.duaCount || 0
+          : genModule === "quran"
+          ? cov?.quranCount || 0
+          : genModule === "tafsir"
+          ? cov?.tafsirCount || 0
+          : genModule === "book"
+          ? cov?.bookCount || 0
+          : genModule === "fatwa"
+          ? cov?.fatwaCount || 0
           : cov?.knowledgeCount || 0;
       return cnt > 0;
     });
@@ -139,11 +147,13 @@ export default function OfflinePacksPage() {
 
   const selectedLangDbCount = useMemo(() => {
     const cov = coverage[selectedLang];
-    return genModule === "hadith"
-      ? cov?.hadithCount || 0
-      : genModule === "dua"
-      ? cov?.duaCount || 0
-      : cov?.knowledgeCount || 0;
+    if (genModule === "hadith") return cov?.hadithCount || 0;
+    if (genModule === "dua") return cov?.duaCount || 0;
+    if (genModule === "quran") return cov?.quranCount || 0;
+    if (genModule === "tafsir") return cov?.tafsirCount || 0;
+    if (genModule === "book") return cov?.bookCount || 0;
+    if (genModule === "fatwa") return cov?.fatwaCount || 0;
+    return cov?.knowledgeCount || 0;
   }, [coverage, selectedLang, genModule]);
 
   const selectedLangObj = APP_LANGUAGES.find((l) => l.code === selectedLang);
@@ -260,9 +270,13 @@ export default function OfflinePacksPage() {
   const getBatchButtonLabel = () => {
     if (activeModule === "all") {
       const totalAvailable =
+        getLangsWithData("quran").length +
+        getLangsWithData("tafsir").length +
         getLangsWithData("hadith").length +
         getLangsWithData("dua").length +
-        getLangsWithData("knowledge").length;
+        getLangsWithData("knowledge").length +
+        getLangsWithData("book").length +
+        getLangsWithData("fatwa").length;
       return `Batch All Available (${totalAvailable})`;
     }
     const count = getLangsWithData(activeModule).length;
@@ -435,7 +449,7 @@ export default function OfflinePacksPage() {
       {/* Quick Batch Actions & Filter Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
-          {(["all", "hadith", "dua", "knowledge"] as ModuleType[]).map((tab) => {
+          {((["all", "quran", "tafsir", "hadith", "dua", "knowledge", "book", "fatwa"]) as ModuleType[]).map((tab) => {
             const count = getModuleBadgeCount(tab);
             return (
               <button
@@ -540,10 +554,18 @@ export default function OfflinePacksPage() {
                         <Badge
                           variant="outline"
                           className={`capitalize font-semibold text-xs rounded-lg ${
-                            pack.module === "hadith"
+                            pack.module === "quran"
+                              ? "bg-teal-50 text-teal-800 border-teal-200"
+                              : pack.module === "tafsir"
+                              ? "bg-cyan-50 text-cyan-800 border-cyan-200"
+                              : pack.module === "hadith"
                               ? "bg-amber-50 text-amber-800 border-amber-200"
                               : pack.module === "dua"
                               ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                              : pack.module === "book"
+                              ? "bg-indigo-50 text-indigo-800 border-indigo-200"
+                              : pack.module === "fatwa"
+                              ? "bg-violet-50 text-violet-800 border-violet-200"
                               : "bg-blue-50 text-blue-800 border-blue-200"
                           }`}
                         >
@@ -666,9 +688,13 @@ export default function OfflinePacksPage() {
                   <SelectValue placeholder="Select Module" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
+                  <SelectItem value="quran">Quran (114 Surahs / 6,236 Ayahs)</SelectItem>
+                  <SelectItem value="tafsir">Tafsir (Exegesis)</SelectItem>
                   <SelectItem value="hadith">Hadith Collection (8 Books)</SelectItem>
                   <SelectItem value="dua">Dua Collection (Hisn al-Muslim)</SelectItem>
-                  <SelectItem value="knowledge">Knowledge Library (Articles &amp; Fatwas)</SelectItem>
+                  <SelectItem value="knowledge">Knowledge Library (Articles)</SelectItem>
+                  <SelectItem value="book">Islamic Books (IslamHouse)</SelectItem>
+                  <SelectItem value="fatwa">Fatwas (IslamHouse)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
