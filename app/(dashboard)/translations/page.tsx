@@ -23,6 +23,7 @@ import {
   useGetBatchJobsQuery,
   useStartBatchTranslationMutation,
   useProcessBatchResultMutation,
+  useCancelBatchJobMutation,
   useGetPacksQuery,
   useGetCoverageQuery,
 } from "@/redux/features/offline-pack/offlinePackApi";
@@ -65,6 +66,7 @@ export default function TranslationsPage() {
 
   const [startBatch, { isLoading: isStartingBatch }] = useStartBatchTranslationMutation();
   const [processBatch, { isLoading: isProcessingBatch }] = useProcessBatchResultMutation();
+  const [cancelBatch, { isLoading: isCancellingBatch }] = useCancelBatchJobMutation();
 
   const [searchLang, setSearchLang] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -162,6 +164,18 @@ export default function TranslationsPage() {
       refetchCoverage();
     } catch (err: any) {
       toast.error(err?.data?.message || err?.message || "Failed to start batch translation");
+    }
+  };
+
+  const handleCancelJob = async (jobId: string) => {
+    try {
+      toast.loading("Cancelling batch job on OpenAI...", { id: "cancel-job" });
+      await cancelBatch(jobId).unwrap();
+      toast.success("Batch translation job cancelled successfully!", { id: "cancel-job" });
+      refetchJobs();
+      refetchCoverage();
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || "Failed to cancel batch job", { id: "cancel-job" });
     }
   };
 
@@ -358,6 +372,11 @@ export default function TranslationsPage() {
                           Failed
                         </Badge>
                       )}
+                      {(job.status === "cancelled" || job.status === "cancelling") && (
+                        <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-xs">
+                          Cancelled
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400 font-mono">
                       Job ID: {job.batchId} • {job.processedCount} / {job.recordCount} items
@@ -366,9 +385,31 @@ export default function TranslationsPage() {
 
                   <div className="flex items-center gap-3 w-full md:w-auto">
                     {job.status === "in_progress" && (
-                      <div className="w-40">
-                        <Progress value={progressPct} className="h-2" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-32">
+                          <Progress value={progressPct} className="h-2" />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCancelJob(job.batchId)}
+                          disabled={isCancellingBatch}
+                          className="h-7 px-2.5 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 rounded-lg cursor-pointer"
+                        >
+                          Cancel
+                        </Button>
                       </div>
+                    )}
+                    {job.status === "validating" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCancelJob(job.batchId)}
+                        disabled={isCancellingBatch}
+                        className="h-7 px-2.5 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 rounded-lg cursor-pointer"
+                      >
+                        Cancel
+                      </Button>
                     )}
 
                     {job.status === "completed" && (

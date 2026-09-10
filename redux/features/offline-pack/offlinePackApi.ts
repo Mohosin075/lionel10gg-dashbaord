@@ -19,7 +19,7 @@ export interface IBatchJob {
   fileId: string;
   module: "hadith" | "dua" | "knowledge";
   targetLang: string;
-  status: "in_progress" | "completed" | "failed" | "cancelled" | "processed";
+  status: "in_progress" | "validating" | "finalizing" | "cancelling" | "cancelled" | "completed" | "failed" | "processed";
   recordCount: number;
   processedCount: number;
   outputFileId?: string;
@@ -64,6 +64,16 @@ export const offlinePackApi = baseApi.injectEndpoints({
       query: (jobId) => `/offline-pack/batch-status/${jobId}`,
       providesTags: ["BatchTranslation"],
     }),
+    cancelBatchJob: builder.mutation<
+      { success: boolean; data: any; message: string },
+      string
+    >({
+      query: (jobId) => ({
+        url: `/offline-pack/batch-cancel/${jobId}`,
+        method: "POST",
+      }),
+      invalidatesTags: ["BatchTranslation"],
+    }),
     processBatchResult: builder.mutation<
       { success: boolean; data: { savedCount: number; errorCount: number }; message: string },
       string
@@ -99,5 +109,6 @@ export const {
   useStartBatchTranslationMutation,
   useGetBatchStatusQuery,
   useProcessBatchResultMutation,
+  useCancelBatchJobMutation,
   useGetCoverageQuery,
 } = offlinePackApi;
