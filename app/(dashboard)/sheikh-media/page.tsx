@@ -29,7 +29,7 @@ export default function SheikhMediaPage() {
         url,
         isActive: true,
       }).unwrap();
-      
+
       // Reset form
       setTitle("");
       setUrl("");
@@ -167,9 +167,8 @@ export default function SheikhMediaPage() {
                   <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm">
                     <td className="p-4 font-semibold text-slate-900">{item.speakerName}</td>
                     <td className="p-4 text-slate-500">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium uppercase ${
-                        item.type === "video" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
-                      }`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium uppercase ${item.type === "video" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+                        }`}>
                         {item.type === "video" ? "Video" : "Audio"}
                       </span>
                     </td>

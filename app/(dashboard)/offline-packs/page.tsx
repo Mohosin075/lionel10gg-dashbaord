@@ -82,16 +82,16 @@ export default function OfflinePacksPage() {
           mod === "hadith"
             ? data.hadithCount
             : mod === "dua"
-            ? data.duaCount
-            : mod === "quran"
-            ? data.quranCount
-            : mod === "tafsir"
-            ? data.tafsirCount
-            : mod === "book"
-            ? data.bookCount
-            : mod === "fatwa"
-            ? data.fatwaCount
-            : data.knowledgeCount,
+              ? data.duaCount
+              : mod === "quran"
+                ? data.quranCount
+                : mod === "tafsir"
+                  ? data.tafsirCount
+                  : mod === "book"
+                    ? data.bookCount
+                    : mod === "fatwa"
+                      ? data.fatwaCount
+                      : data.knowledgeCount,
       }));
   };
 
@@ -104,14 +104,14 @@ export default function OfflinePacksPage() {
         genModule === "hadith"
           ? aData?.hadithCount || 0
           : genModule === "dua"
-          ? aData?.duaCount || 0
-          : aData?.knowledgeCount || 0;
+            ? aData?.duaCount || 0
+            : aData?.knowledgeCount || 0;
       const bCount =
         genModule === "hadith"
           ? bData?.hadithCount || 0
           : genModule === "dua"
-          ? bData?.duaCount || 0
-          : bData?.knowledgeCount || 0;
+            ? bData?.duaCount || 0
+            : bData?.knowledgeCount || 0;
 
       if (aCount > 0 && bCount === 0) return -1;
       if (bCount > 0 && aCount === 0) return 1;
@@ -128,16 +128,16 @@ export default function OfflinePacksPage() {
         genModule === "hadith"
           ? cov?.hadithCount || 0
           : genModule === "dua"
-          ? cov?.duaCount || 0
-          : genModule === "quran"
-          ? cov?.quranCount || 0
-          : genModule === "tafsir"
-          ? cov?.tafsirCount || 0
-          : genModule === "book"
-          ? cov?.bookCount || 0
-          : genModule === "fatwa"
-          ? cov?.fatwaCount || 0
-          : cov?.knowledgeCount || 0;
+            ? cov?.duaCount || 0
+            : genModule === "quran"
+              ? cov?.quranCount || 0
+              : genModule === "tafsir"
+                ? cov?.tafsirCount || 0
+                : genModule === "book"
+                  ? cov?.bookCount || 0
+                  : genModule === "fatwa"
+                    ? cov?.fatwaCount || 0
+                    : cov?.knowledgeCount || 0;
       return cnt > 0;
     });
     if (available) {
@@ -612,21 +612,20 @@ export default function OfflinePacksPage() {
                       <td className="py-4 px-6 font-medium text-slate-900">
                         <Badge
                           variant="outline"
-                          className={`capitalize font-semibold text-xs rounded-lg ${
-                            pack.module === "quran"
+                          className={`capitalize font-semibold text-xs rounded-lg ${pack.module === "quran"
                               ? "bg-teal-50 text-teal-800 border-teal-200"
                               : pack.module === "tafsir"
-                              ? "bg-cyan-50 text-cyan-800 border-cyan-200"
-                              : pack.module === "hadith"
-                              ? "bg-amber-50 text-amber-800 border-amber-200"
-                              : pack.module === "dua"
-                              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                              : pack.module === "book"
-                              ? "bg-indigo-50 text-indigo-800 border-indigo-200"
-                              : pack.module === "fatwa"
-                              ? "bg-violet-50 text-violet-800 border-violet-200"
-                              : "bg-blue-50 text-blue-800 border-blue-200"
-                          }`}
+                                ? "bg-cyan-50 text-cyan-800 border-cyan-200"
+                                : pack.module === "hadith"
+                                  ? "bg-amber-50 text-amber-800 border-amber-200"
+                                  : pack.module === "dua"
+                                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                    : pack.module === "book"
+                                      ? "bg-indigo-50 text-indigo-800 border-indigo-200"
+                                      : pack.module === "fatwa"
+                                        ? "bg-violet-50 text-violet-800 border-violet-200"
+                                        : "bg-blue-50 text-blue-800 border-blue-200"
+                            }`}
                         >
                           {pack.module}
                         </Badge>
@@ -773,8 +772,8 @@ export default function OfflinePacksPage() {
                       genModule === "hadith"
                         ? cov?.hadithCount || 0
                         : genModule === "dua"
-                        ? cov?.duaCount || 0
-                        : cov?.knowledgeCount || 0;
+                          ? cov?.duaCount || 0
+                          : cov?.knowledgeCount || 0;
 
                     return (
                       <SelectItem key={lang.code} value={lang.code}>

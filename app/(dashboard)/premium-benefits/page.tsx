@@ -71,7 +71,7 @@ export default function PremiumBenefitsPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -111,9 +111,8 @@ export default function PremiumBenefitsPage() {
                   <td className="p-4 font-semibold text-slate-900">{item.serialNumber}</td>
                   <td className="p-4 text-slate-900 font-medium">{item.text}</td>
                   <td className="p-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                      item.isActive ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                    }`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${item.isActive ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                      }`}>
                       {item.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>

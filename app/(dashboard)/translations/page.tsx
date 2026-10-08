@@ -183,8 +183,7 @@ export default function TranslationsPage() {
     try {
       const res = await startBatch({ module: selectedModule, targetLang: selectedLang }).unwrap();
       toast.success(
-        `OpenAI Batch job started for ${selectedModule.toUpperCase()} [${selectedLang}]! Estimated completion: ${
-          res.data?.estimatedMinutes || 20
+        `OpenAI Batch job started for ${selectedModule.toUpperCase()} [${selectedLang}]! Estimated completion: ${res.data?.estimatedMinutes || 20
         } mins`
       );
       setIsModalOpen(false);
@@ -228,23 +227,23 @@ export default function TranslationsPage() {
     selectedModule === "hadith"
       ? currentModalStats.hadithCount > 0 || Boolean(currentModalStats.hadithPack)
       : selectedModule === "dua"
-      ? currentModalStats.duaCount > 0 || Boolean(currentModalStats.duaPack)
-      : currentModalStats.knowledgeCount > 0 || Boolean(currentModalStats.knowledgePack);
+        ? currentModalStats.duaCount > 0 || Boolean(currentModalStats.duaPack)
+        : currentModalStats.knowledgeCount > 0 || Boolean(currentModalStats.knowledgePack);
 
   const selectedModuleCount =
     selectedModule === "hadith"
       ? currentModalStats.hadithCount
       : selectedModule === "dua"
-      ? currentModalStats.duaCount
-      : selectedModule === "quran"
-      ? currentModalStats.quranCount
-      : selectedModule === "tafsir"
-      ? currentModalStats.tafsirCount
-      : selectedModule === "book"
-      ? currentModalStats.bookCount
-      : selectedModule === "fatwa"
-      ? currentModalStats.fatwaCount
-      : currentModalStats.knowledgeCount;
+        ? currentModalStats.duaCount
+        : selectedModule === "quran"
+          ? currentModalStats.quranCount
+          : selectedModule === "tafsir"
+            ? currentModalStats.tafsirCount
+            : selectedModule === "book"
+              ? currentModalStats.bookCount
+              : selectedModule === "fatwa"
+                ? currentModalStats.fatwaCount
+                : currentModalStats.knowledgeCount;
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -275,9 +274,8 @@ export default function TranslationsPage() {
             className="flex items-center gap-2 rounded-xl text-xs"
           >
             <RefreshCw
-              className={`h-3.5 w-3.5 ${
-                isFetchingJobs || isFetchingCoverage ? "animate-spin" : ""
-              }`}
+              className={`h-3.5 w-3.5 ${isFetchingJobs || isFetchingCoverage ? "animate-spin" : ""
+                }`}
             />
             Refresh Status
           </Button>
@@ -853,11 +851,10 @@ export default function TranslationsPage() {
             <Button
               onClick={handleStartBatch}
               disabled={isStartingBatch || (isSelectedModuleAlreadyDone && !confirmRetranslate)}
-              className={`rounded-xl shadow cursor-pointer text-white font-medium ${
-                isSelectedModuleAlreadyDone
+              className={`rounded-xl shadow cursor-pointer text-white font-medium ${isSelectedModuleAlreadyDone
                   ? "bg-amber-600 hover:bg-amber-700"
                   : "bg-emerald-900 hover:bg-emerald-800"
-              }`}
+                }`}
             >
               {isStartingBatch ? (
                 <div className="flex items-center gap-2">
