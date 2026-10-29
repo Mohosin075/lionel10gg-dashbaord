@@ -10,7 +10,7 @@ export interface IHadithCollection {
 
 export interface IHadith {
   _id: string;
-  hadithNo: number;
+  hadithNo: string;
   source: string;
   chapter: string;
   chapterNo?: number;
@@ -26,7 +26,10 @@ export interface IHadith {
 
 export const hadithApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getCollections: builder.query<{ success: boolean; data: IHadithCollection[] }, { lang?: string } | void>({
+    getCollections: builder.query<
+      { success: boolean; data: IHadithCollection[] },
+      { lang?: string } | void
+    >({
       query: (params) => ({
         url: "/hadith/collections",
         params: params || {},
@@ -34,8 +37,23 @@ export const hadithApi = baseApi.injectEndpoints({
       providesTags: ["Hadith"],
     }),
     getHadiths: builder.query<
-      { success: boolean; data: IHadith[]; meta: { total: number; page: number; limit: number; totalPages: number } },
-      { source?: string; lang?: string; category?: string; page?: number; limit?: number }
+      {
+        success: boolean;
+        data: IHadith[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      },
+      {
+        source?: string;
+        lang?: string;
+        category?: string;
+        page?: number;
+        limit?: number;
+      }
     >({
       query: (params) => ({
         url: "/hadith",
@@ -43,13 +61,16 @@ export const hadithApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Hadith"],
     }),
-    createHadith: builder.mutation<{ success: boolean; data: IHadith; message: string }, Partial<IHadith>>({
+    createHadith: builder.mutation<
+      { success: boolean; data: IHadith; message: string },
+      Partial<IHadith>
+    >({
       query: (body) => ({
         url: "/hadith",
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Hadith"],
+      invalidatesTags: ["Hadith", "OfflinePack", "Dashboard"],
     }),
     updateHadith: builder.mutation<
       { success: boolean; data: IHadith; message: string },
@@ -60,17 +81,24 @@ export const hadithApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ["Hadith"],
+      invalidatesTags: ["Hadith", "OfflinePack", "Dashboard"],
     }),
-    deleteHadith: builder.mutation<{ success: boolean; message: string }, string>({
+    deleteHadith: builder.mutation<
+      { success: boolean; message: string },
+      string
+    >({
       query: (id) => ({
         url: `/hadith/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Hadith"],
+      invalidatesTags: ["Hadith", "OfflinePack", "Dashboard"],
     }),
     syncExternalHadith: builder.mutation<
-      { success: boolean; data: { createdCount: number; updatedCount: number }; message: string },
+      {
+        success: boolean;
+        data: { createdCount: number; updatedCount: number };
+        message: string;
+      },
       { edition: string; from: number; to: number }
     >({
       query: (body) => ({
@@ -78,7 +106,7 @@ export const hadithApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Hadith"],
+      invalidatesTags: ["Hadith", "OfflinePack", "Dashboard"],
     }),
   }),
 });

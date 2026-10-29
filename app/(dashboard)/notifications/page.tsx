@@ -1,21 +1,30 @@
 "use client";
+import {QueryError} from "@/components/shared/query-error";
+import { getErrorMessage } from "@/lib/errors";
 
-import { useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useSendNotificationMutation } from "@/redux/features/notificationApi";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useGetNotificationManagementQuery } from "@/redux/features/dashboard/dashboardApi";
+import { useSendNotificationMutation } from "@/redux/features/notificationApi";
+import { Bell, CheckCircle, Send } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { Bell, Send, CheckCircle } from "lucide-react";
 
 export default function NotificationsPage() {
-  const [sendNotification, { isLoading: isSending }] = useSendNotificationMutation();
-  const { data: notifRes, refetch } = useGetNotificationManagementQuery();
-  
+  const [sendNotification, { isLoading: isSending }] =
+    useSendNotificationMutation();
+  const { data: notifRes, isError, refetch } = useGetNotificationManagementQuery();
+
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [target, setTarget] = useState<"all" | "user">("all");
@@ -32,7 +41,7 @@ export default function NotificationsPage() {
     }
 
     try {
-      const payload: any = {
+      const payload: { title: string; message: string; userId?: string } = {
         title: title.trim(),
         message: message.trim(),
       };
@@ -46,13 +55,17 @@ export default function NotificationsPage() {
       setMessage("");
       setUserId("");
       refetch();
-    } catch (err: any) {
-      toast.error(err.data?.message || "Failed to send notification");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to send notification"));
     }
   };
 
-  const notificationStats = notifRes?.data || { sentNotifications: 0, notifications: [] };
+  const notificationStats = notifRes?.data || {
+    sentNotifications: 0,
+    notifications: [],
+  };
 
+  if (isError) return <QueryError retry={refetch}/>;
   return (
     <div className="space-y-6">
       <PageHeader
@@ -77,7 +90,7 @@ export default function NotificationsPage() {
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label>Message</Label>
               <textarea
@@ -91,7 +104,10 @@ export default function NotificationsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Target Audience</Label>
-                <Select value={target} onValueChange={(val: any) => setTarget(val)}>
+                <Select
+                  value={target}
+                  onValueChange={(val) => setTarget(val as "all" | "user")}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -131,7 +147,7 @@ export default function NotificationsPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-slate-500">
-                Total Broadcasts
+                Notifications recorded
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -139,7 +155,7 @@ export default function NotificationsPage() {
                 {notificationStats.sentNotifications || 0}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                Notifications successfully sent
+                Stored notification records
               </p>
             </CardContent>
           </Card>
@@ -151,13 +167,14 @@ export default function NotificationsPage() {
           <CardTitle className="text-base">Recent Notifications</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {!notificationStats.notifications || notificationStats.notifications.length === 0 ? (
+          {!notificationStats.notifications ||
+          notificationStats.notifications.length === 0 ? (
             <p className="p-6 text-sm text-slate-500 text-center">
               No recent notifications found.
             </p>
           ) : (
             <div className="divide-y divide-slate-100">
-              {notificationStats.notifications.map((notif: any) => (
+              {notificationStats.notifications.map((notif) => (
                 <div key={notif._id} className="p-4 flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
                   <div className="min-w-0 flex-1">

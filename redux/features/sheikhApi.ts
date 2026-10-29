@@ -1,8 +1,22 @@
+import type { ApiResponse } from "@/lib/api-types";
 import { baseApi } from "./baseApi";
+export interface SheikhContent {
+  _id: string;
+  title: string;
+  speakerName: string;
+  type: "video" | "audio_travel";
+  url: string;
+  youtubeId?: string;
+  isActive: boolean;
+  createdAt?: string;
+}
 
 export const sheikhApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getSheikhContents: builder.query({
+    getSheikhContents: builder.query<
+      ApiResponse<SheikhContent[]>,
+      Record<string, never>
+    >({
       query: () => ({
         url: "/sheikh-content/all",
       }),

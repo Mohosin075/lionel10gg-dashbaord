@@ -1,13 +1,16 @@
 "use client";
+import { LanguageSelect } from "@/components/shared/language-select";
+import { Pagination } from "@/components/shared/pagination";
+import { QueryError } from "@/components/shared/query-error";
+import { SafeHtml } from "@/components/shared/safe-html";
+import { getErrorMessage } from "@/lib/errors";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
+import Image from "next/image";
 
-import { useState, useMemo } from "react";
-import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -31,27 +36,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  useGetArticlesQuery,
   useCreateArticleMutation,
-  useUpdateArticleMutation,
   useDeleteArticleMutation,
+  useGetArticlesQuery,
+  useUpdateArticleMutation,
 } from "@/redux/features/knowledgeApi";
-import { toast } from "sonner";
 import {
-  Pencil,
-  Plus,
-  Trash2,
-  Eye,
-  Search,
-  Copy,
+  BookOpen,
   Check,
   Clock,
-  FileText,
-  BookOpen,
   Code2,
+  Copy,
+  Eye,
+  FileText,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
 } from "lucide-react";
-
-const LANG = "de";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const CATEGORY_OPTIONS = [
   "Belief",
@@ -120,15 +125,22 @@ function hasHtmlTags(str?: string | null) {
 }
 
 export default function ArticlesPage() {
+  const [lang, setLang] = useState("de");
+  const [page, setPage] = useState(1);
   const [category, setCategory] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const searchTerm = useDebouncedValue(searchQuery);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Content Preview Modal State
-  const [previewArticle, setPreviewArticle] = useState<KnowledgeArticle | null>(null);
-  const [previewViewMode, setPreviewViewMode] = useState<"rendered" | "raw">("rendered");
+  const [previewArticle, setPreviewArticle] = useState<KnowledgeArticle | null>(
+    null,
+  );
+  const [previewViewMode, setPreviewViewMode] = useState<"rendered" | "raw">(
+    "rendered",
+  );
   const [copied, setCopied] = useState(false);
 
   // Editor live preview tab
@@ -136,11 +148,20 @@ export default function ArticlesPage() {
 
   const [articleForm, setArticleForm] = useState<ArticleForm>(emptyArticle);
 
-  const { data: articlesRes, isLoading } = useGetArticlesQuery({
-    lang: LANG,
+  const {
+    currentData: articlesRes,
+    isError,
+    refetch,
+    isFetching,
+    isLoading,
+  } = useGetArticlesQuery({
+    lang,
     category: category === "all" ? undefined : category,
-    page: 1,
-    limit: 100,
+    page,
+    limit: 20,
+    strictLang: true,
+    searchTerm,
+    source: sourceFilter === "all" ? undefined : sourceFilter,
   });
 
   const [createArticle, { isLoading: creating }] = useCreateArticleMutation();
@@ -150,20 +171,7 @@ export default function ArticlesPage() {
   const articles: KnowledgeArticle[] = articlesRes?.data || [];
   const saving = creating || updating;
 
-  const filteredArticles = useMemo(() => {
-    return articles.filter((a) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        a.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.slug?.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesSource =
-        sourceFilter === "all" || (a.source || "manual") === sourceFilter;
-
-      return matchesSearch && matchesSource;
-    });
-  }, [articles, searchQuery, sourceFilter]);
+  const filteredArticles = articles;
 
   const openCreate = () => {
     setEditingId(null);
@@ -196,7 +204,11 @@ export default function ArticlesPage() {
     const toCopy = asHtml ? text : stripHtml(text);
     navigator.clipboard.writeText(toCopy);
     setCopied(true);
-    toast.success(asHtml ? "Raw HTML copied to clipboard" : "Clean text copied to clipboard");
+    toast.success(
+      asHtml
+        ? "Raw HTML copied to clipboard"
+        : "Clean text copied to clipboard",
+    );
     setTimeout(() => setCopied(false), 2500);
   };
 
@@ -213,7 +225,7 @@ export default function ArticlesPage() {
         content: articleForm.content,
         category: articleForm.category,
         readTime: Number(articleForm.readTime) || 5,
-        lang: LANG,
+        lang,
         source: articleForm.source,
         imageUrl: articleForm.imageUrl || undefined,
       };
@@ -225,8 +237,8 @@ export default function ArticlesPage() {
       }
       toast.success("Article saved successfully");
       setOpen(false);
-    } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to save article");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to save article"));
     }
   };
 
@@ -235,8 +247,8 @@ export default function ArticlesPage() {
     try {
       await deleteArticle(id).unwrap();
       toast.success("Article deleted");
-    } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to delete article");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to delete article"));
     }
   };
 
@@ -264,10 +276,24 @@ export default function ArticlesPage() {
         </div>
       </div>
 
+      <LanguageSelect
+        value={lang}
+        onChange={(value) => {
+          setLang(value);
+          setPage(1);
+        }}
+      />
+      {isError && <QueryError retry={refetch} />}
       {/* Filters & Search */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={category} onValueChange={setCategory}>
+          <Select
+            value={category}
+            onValueChange={(value) => {
+              setCategory(value);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="w-40 h-9 text-xs">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
@@ -281,7 +307,13 @@ export default function ArticlesPage() {
             </SelectContent>
           </Select>
 
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+          <Select
+            value={sourceFilter}
+            onValueChange={(value) => {
+              setSourceFilter(value);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="w-36 h-9 text-xs">
               <SelectValue placeholder="All Sources" />
             </SelectTrigger>
@@ -298,7 +330,10 @@ export default function ArticlesPage() {
           <Input
             placeholder="Search title, content, or slug..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
             className="pl-9 h-9 text-xs bg-white"
           />
         </div>
@@ -331,13 +366,19 @@ export default function ArticlesPage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-sm text-slate-400">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-8 text-sm text-slate-400"
+                    >
                       Loading articles...
                     </TableCell>
                   </TableRow>
                 ) : filteredArticles.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-sm text-slate-400">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-8 text-sm text-slate-400"
+                    >
                       No articles found matching filters.
                     </TableCell>
                   </TableRow>
@@ -379,11 +420,18 @@ export default function ArticlesPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={article.isActive === false ? "restricted" : "active"}>
+                        <Badge
+                          variant={
+                            article.isActive === false ? "restricted" : "active"
+                          }
+                        >
                           {article.isActive === false ? "Inactive" : "Active"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                      <TableCell
+                        className="text-right space-x-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Button
                           variant="ghost"
                           size="sm"
@@ -418,6 +466,12 @@ export default function ArticlesPage() {
             </Table>
           </div>
         </CardContent>
+        <Pagination
+          page={page}
+          meta={articlesRes?.meta}
+          onChange={setPage}
+          disabled={isFetching}
+        />
       </Card>
 
       {/* ARTICLE CONTENT PREVIEW MODAL WITH HTML RENDERING */}
@@ -483,7 +537,10 @@ export default function ArticlesPage() {
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {previewArticle?.imageUrl && (
               <div className="w-full h-48 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                <img
+                <Image
+                  unoptimized
+                  width={640}
+                  height={360}
                   src={previewArticle.imageUrl}
                   alt={previewArticle.title}
                   className="w-full h-full object-cover"
@@ -494,9 +551,9 @@ export default function ArticlesPage() {
             {previewViewMode === "rendered" ? (
               hasHtmlTags(previewArticle?.content || "") ? (
                 /* PROPERLY RENDERED HTML */
-                <div
+                <SafeHtml
                   className="prose prose-slate max-w-none text-slate-800 text-sm leading-relaxed font-sans bg-white p-6 rounded-xl border border-slate-200/90 shadow-2xs [&>p]:mb-3 [&>p:last-child]:mb-0 [&>h1]:text-lg [&>h1]:font-bold [&>h2]:text-base [&>h2]:font-bold [&>h3]:text-sm [&>h3]:font-semibold [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>blockquote]:border-l-4 [&>blockquote]:border-emerald-500 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:text-slate-600 [&_a]:text-emerald-700 [&_a]:underline"
-                  dangerouslySetInnerHTML={{ __html: previewArticle?.content || "" }}
+                  html={previewArticle?.content || ""}
                 />
               ) : (
                 /* Plain Text with line breaks */
@@ -518,7 +575,9 @@ export default function ArticlesPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1.5 text-xs text-slate-600"
-                onClick={() => handleCopyContent(previewArticle?.content || "", false)}
+                onClick={() =>
+                  handleCopyContent(previewArticle?.content || "", false)
+                }
               >
                 {copied ? (
                   <>
@@ -534,7 +593,9 @@ export default function ArticlesPage() {
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 text-xs text-slate-500"
-                onClick={() => handleCopyContent(previewArticle?.content || "", true)}
+                onClick={() =>
+                  handleCopyContent(previewArticle?.content || "", true)
+                }
               >
                 <Code2 className="h-3.5 w-3.5" /> Copy Raw HTML
               </Button>
@@ -568,7 +629,9 @@ export default function ArticlesPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Article" : "Add Article"}</DialogTitle>
+            <DialogTitle>
+              {editingId ? "Edit Article" : "Add Article"}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
@@ -708,9 +771,12 @@ export default function ArticlesPage() {
                   }
                 />
               ) : (
-                <div
+                <SafeHtml
                   className="min-h-56 p-4 rounded-md border border-slate-200 bg-white text-sm text-slate-800 overflow-y-auto max-h-72 prose prose-slate [&>p]:mb-2"
-                  dangerouslySetInnerHTML={{ __html: articleForm.content || "<p className='text-slate-400 italic'>No content entered yet.</p>" }}
+                  html={
+                    articleForm.content ||
+                    "<p className='text-slate-400 italic'>No content entered yet.</p>"
+                  }
                 />
               )}
             </div>

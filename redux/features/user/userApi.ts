@@ -1,3 +1,4 @@
+import type { ApiResponse } from "@/lib/api-types";
 import { baseApi } from "../baseApi";
 
 export type AppUser = {
@@ -15,13 +16,13 @@ export type AppUser = {
 
 const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getProfile: builder.query<any, void>({
+    getProfile: builder.query<ApiResponse<AppUser>, void>({
       query: () => "/user/profile",
       providesTags: ["Profile"],
     }),
 
     getUsers: builder.query<
-      any,
+      ApiResponse<AppUser[]>,
       {
         page?: number;
         limit?: number;

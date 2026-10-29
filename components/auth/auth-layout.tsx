@@ -1,6 +1,7 @@
 "use client";
 
 import bgImg from "@/public/auth-bg.png";
+import logo from "@/public/logo.png";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -15,10 +16,13 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         <div className="w-full max-w-lg ">
           {/* Logo */}
           <div className="shrink-0">
-            <Link href="/" className="
-            ">
+            <Link
+              href="/"
+              className="
+            "
+            >
               <Image
-                src={require("@/public/logo.png")}
+                src={logo}
                 alt="Dashboard Logo"
                 height={500}
                 width={500}

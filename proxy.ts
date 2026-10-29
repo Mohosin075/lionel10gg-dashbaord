@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const authRoutes = ["/login", "/forgot-password"];
 const resetFlowRoutes = ["/otp-verify", "/reset-password"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("token")?.value;
   const isAuthRoute = authRoutes.some(
@@ -22,10 +22,6 @@ export function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (token && isAuthRoute) {
-    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

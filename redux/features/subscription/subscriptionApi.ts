@@ -1,3 +1,4 @@
+import type { ApiResponse, SubscriptionAnalytics } from "@/lib/api-types";
 import { baseApi } from "../baseApi";
 
 export type SubscriptionPlan = {
@@ -24,7 +25,7 @@ export type PremiumBenefit = {
 
 const subscriptionApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getAdminPlans: builder.query<any, void>({
+    getAdminPlans: builder.query<ApiResponse<SubscriptionPlan[]>, void>({
       query: () => "/subscription/admin/plans",
       providesTags: ["SubscriptionPlan"],
     }),
@@ -65,10 +66,12 @@ const subscriptionApi = baseApi.injectEndpoints({
       invalidatesTags: ["SubscriptionPlan"],
     }),
 
-    getAdminPremiumBenefits: builder.query<any, void>({
-      query: () => "/subscription/admin/premium-benefits",
-      providesTags: ["PremiumBenefit"],
-    }),
+    getAdminPremiumBenefits: builder.query<ApiResponse<PremiumBenefit[]>, void>(
+      {
+        query: () => "/subscription/admin/premium-benefits",
+        providesTags: ["PremiumBenefit"],
+      },
+    ),
 
     createPremiumBenefit: builder.mutation({
       query: (body: {
@@ -108,7 +111,10 @@ const subscriptionApi = baseApi.injectEndpoints({
       invalidatesTags: ["PremiumBenefit"],
     }),
 
-    getSubscriptionAnalytics: builder.query<any, void>({
+    getSubscriptionAnalytics: builder.query<
+      ApiResponse<SubscriptionAnalytics>,
+      void
+    >({
       query: () => "/subscription/admin/analytics",
       providesTags: ["SubscriptionAnalytics"],
     }),

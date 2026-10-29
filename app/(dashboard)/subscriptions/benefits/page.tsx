@@ -1,13 +1,11 @@
 "use client";
+import {QueryError} from "@/components/shared/query-error";
+import { getErrorMessage } from "@/lib/errors";
 
-import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -24,14 +25,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  useGetAdminPremiumBenefitsQuery,
   useCreatePremiumBenefitMutation,
-  useUpdatePremiumBenefitMutation,
   useDeletePremiumBenefitMutation,
+  useGetAdminPremiumBenefitsQuery,
+  useUpdatePremiumBenefitMutation,
   type PremiumBenefit,
 } from "@/redux/features/subscription/subscriptionApi";
-import { toast } from "sonner";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 type BenefitForm = {
   serialNumber: string;
@@ -46,7 +48,7 @@ const emptyForm: BenefitForm = {
 };
 
 export default function PremiumBenefitsPage() {
-  const { data, isLoading } = useGetAdminPremiumBenefitsQuery();
+  const { data, isLoading, isError, refetch } = useGetAdminPremiumBenefitsQuery();
   const [createBenefit, { isLoading: creating }] =
     useCreatePremiumBenefitMutation();
   const [updateBenefit, { isLoading: updating }] =
@@ -114,7 +116,7 @@ export default function PremiumBenefitsPage() {
       setOpen(false);
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Failed to save benefit");
+      toast.error(getErrorMessage(err, "Failed to save benefit"));
     }
   };
 
@@ -127,7 +129,7 @@ export default function PremiumBenefitsPage() {
       toast.success("Benefit status updated");
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Failed to update benefit");
+      toast.error(getErrorMessage(err, "Failed to update benefit"));
     }
   };
 
@@ -138,10 +140,11 @@ export default function PremiumBenefitsPage() {
       toast.success("Benefit deactivated");
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Failed to delete benefit");
+      toast.error(getErrorMessage(err, "Failed to delete benefit"));
     }
   };
 
+  if (isError) return <QueryError retry={refetch}/>;
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">

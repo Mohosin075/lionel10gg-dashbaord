@@ -1,35 +1,37 @@
 "use client";
+import { persistor } from "@/redux/store";
+import { baseApi } from "@/redux/features/baseApi";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  Users,
-  BarChart2,
-  CreditCard,
-  ListOrdered,
-  BookOpen,
-  Video,
-  Bell,
-  DownloadCloud,
-  Languages,
-  BookText,
-  Heart,
-  Settings,
-  FileText,
-  LogOut,
-} from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
-import { removeUser, selectUser } from "@/redux/slice/userSlice";
 import { useGetProfileQuery } from "@/redux/features/user/userApi";
+import { removeUser, selectUser } from "@/redux/slice/userSlice";
+import {
+  BarChart2,
+  Bell,
+  BookOpen,
+  BookText,
+  CreditCard,
+  DownloadCloud,
+  FileText,
+  Heart,
+  Languages,
+  LayoutDashboard,
+  ListOrdered,
+  LogOut,
+  Settings,
+  Users,
+  Video,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
 
 interface NavGroup {
   section: string;
   items: {
     title: string;
     href: string;
-    icon: any;
+    icon: typeof LayoutDashboard;
     badge?: string;
     badgeColor?: string;
   }[];
@@ -40,22 +42,50 @@ const navGroups: NavGroup[] = [
     section: "Main Portal",
     items: [
       { title: "Command Center", href: "/", icon: LayoutDashboard },
-      { title: "App Config & Banners", href: "/app-config", icon: Settings, badge: "Live", badgeColor: "bg-emerald-600" },
+      {
+        title: "App Config & Banners",
+        href: "/app-config",
+        icon: Settings,
+        badge: "Live",
+        badgeColor: "bg-emerald-600",
+      },
     ],
   },
   {
     section: "Offline & AI Pipeline",
     items: [
-      { title: "Offline Pack Manager", href: "/offline-packs", icon: DownloadCloud, badge: "S3 Sync", badgeColor: "bg-blue-600" },
-      { title: "Translations Manager", href: "/translations", icon: Languages, badge: "109 Lng", badgeColor: "bg-purple-600" },
+      {
+        title: "Offline Pack Manager",
+        href: "/offline-packs",
+        icon: DownloadCloud,
+        badge: "S3 Sync",
+        badgeColor: "bg-blue-600",
+      },
+      {
+        title: "Translations Manager",
+        href: "/translations",
+        icon: Languages,
+        badge: "109 Lng",
+        badgeColor: "bg-purple-600",
+      },
     ],
   },
   {
     section: "Islamic Content",
     items: [
-      { title: "Hadith Manager", href: "/hadith", icon: BookText, badge: "8 Books", badgeColor: "bg-amber-600" },
+      {
+        title: "Hadith Manager",
+        href: "/hadith",
+        icon: BookText,
+        badge: "8 Books",
+        badgeColor: "bg-amber-600",
+      },
       { title: "Dua Manager", href: "/duas", icon: Heart },
-      { title: "Knowledge Library", href: "/knowledge-library", icon: BookOpen },
+      {
+        title: "Knowledge Library",
+        href: "/knowledge-library",
+        icon: BookOpen,
+      },
       { title: "Articles Manager", href: "/articles", icon: FileText },
       { title: "Sheikh Media", href: "/sheikh-media", icon: Video },
     ],
@@ -64,8 +94,16 @@ const navGroups: NavGroup[] = [
     section: "Administration & Users",
     items: [
       { title: "User Management", href: "/users", icon: Users },
-      { title: "Subscription Plans", href: "/subscriptions/plans", icon: CreditCard },
-      { title: "Premium Benefits", href: "/subscriptions/benefits", icon: ListOrdered },
+      {
+        title: "Subscription Plans",
+        href: "/subscriptions/plans",
+        icon: CreditCard,
+      },
+      {
+        title: "Premium Benefits",
+        href: "/subscriptions/benefits",
+        icon: ListOrdered,
+      },
       { title: "Reports & Analytics", href: "/reports", icon: BarChart2 },
       { title: "Push Notifications", href: "/notifications", icon: Bell },
     ],
@@ -74,19 +112,20 @@ const navGroups: NavGroup[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const dispatch = useDispatch();
   const userState = useSelector(selectUser);
   const { data: profileRes } = useGetProfileQuery();
 
   const profile = profileRes?.data;
   const role = userState?.user?.role || profile?.role || "admin";
-  const email = profile?.email || "admin@quraninternational.com";
+  const email = profile?.email || "Profile unavailable";
   const name = profile?.name || role;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     dispatch(removeUser());
-    router.push("/login");
+    dispatch(baseApi.util.resetApiState());
+    await persistor.flush();
+    window.location.replace("/login");
   };
 
   return (
@@ -118,7 +157,8 @@ export function Sidebar() {
               const isActive =
                 item.href === "/"
                   ? pathname === "/"
-                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
 
               return (
                 <Link
@@ -135,7 +175,9 @@ export function Sidebar() {
                     <item.icon
                       className={cn(
                         "h-4 w-4 transition-transform group-hover:scale-110",
-                        isActive ? "text-white" : "text-slate-400 group-hover:text-slate-700",
+                        isActive
+                          ? "text-white"
+                          : "text-slate-400 group-hover:text-slate-700",
                       )}
                     />
                     <span>{item.title}</span>
@@ -145,7 +187,9 @@ export function Sidebar() {
                     <span
                       className={cn(
                         "text-[10px] font-bold px-1.5 py-0.5 rounded-md text-white shadow-2xs",
-                        isActive ? "bg-white/20 text-white" : item.badgeColor || "bg-slate-400"
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : item.badgeColor || "bg-slate-400",
                       )}
                     >
                       {item.badge}
@@ -162,11 +206,12 @@ export function Sidebar() {
       <div className="p-4 border-t border-slate-100 bg-slate-50/70 space-y-3">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 overflow-hidden rounded-xl bg-emerald-100 border border-emerald-200">
-            <img
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`}
-              alt={name}
-              className="h-full w-full object-cover"
-            />
+            <span
+              className="flex h-full items-center justify-center font-bold text-emerald-900"
+              aria-label={name}
+            >
+              {name.slice(0, 1).toUpperCase()}
+            </span>
           </div>
           <div className="flex flex-col min-w-0 flex-1">
             <span className="text-xs font-bold text-slate-800 capitalize truncate">

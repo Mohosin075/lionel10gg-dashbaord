@@ -1,4 +1,5 @@
 "use client";
+import { getErrorMessage } from "@/lib/errors";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,11 +19,12 @@ export default function ForgotPasswordForm() {
   const [forgetPassword, { isLoading }] = useForgetPasswordMutation();
 
   const {
+    formState: { errors },
     register,
     handleSubmit,
   } = useForm<ForgotPasswordFormValues>({
     defaultValues: {
-      email: "",      
+      email: "",
     },
   });
 
@@ -35,18 +37,15 @@ export default function ForgotPasswordForm() {
       } else {
         toast.error(res.message || "Failed to send OTP");
       }
-    } catch (error: any) {
-      toast.error(error.data?.message || "Something went wrong");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Something went wrong"));
     }
   };
-
 
   return (
     <div className="w-full  rounded-lg bg-white md:px-8 py-10 ">
       {/* Title */}
-      <h1 className="text-3xl font-semibold text-gray-900">
-        Forgot Password
-      </h1>
+      <h1 className="text-3xl font-semibold text-gray-900">Forgot Password</h1>
 
       {/* Subtitle */}
       <p className="mt-2 text-base text-black">
@@ -55,6 +54,11 @@ export default function ForgotPasswordForm() {
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-5">
+        {Object.entries(errors).map(([name, error]) => (
+          <p role="alert" className="text-sm text-red-600" key={name}>
+            {error.message}
+          </p>
+        ))}
         {/* Email */}
         <div className="space-y-2">
           <Label className="text-base font-medium text-gray-700">
@@ -69,7 +73,6 @@ export default function ForgotPasswordForm() {
             })}
           />
         </div>
-      
 
         {/* Button */}
         <Button

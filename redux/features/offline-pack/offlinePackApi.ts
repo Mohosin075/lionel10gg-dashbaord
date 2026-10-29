@@ -1,8 +1,10 @@
+import type { ModuleCoverage } from "@/lib/content-coverage";
 import { baseApi } from "../baseApi";
 
 export interface IOfflinePack {
   _id: string;
-  module: "hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa";
+  module:
+    "hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa";
   lang: string;
   version: number;
   sha256: string;
@@ -17,9 +19,18 @@ export interface IBatchJob {
   _id: string;
   batchId: string;
   fileId: string;
-  module: "hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa";
+  module:
+    "hadith" | "dua" | "knowledge" | "quran" | "tafsir" | "book" | "fatwa";
   targetLang: string;
-  status: "in_progress" | "validating" | "finalizing" | "cancelling" | "cancelled" | "completed" | "failed" | "processed";
+  status:
+    | "in_progress"
+    | "validating"
+    | "finalizing"
+    | "cancelling"
+    | "cancelled"
+    | "completed"
+    | "failed"
+    | "processed";
   recordCount: number;
   processedCount: number;
   outputFileId?: string;
@@ -35,7 +46,7 @@ export const offlinePackApi = baseApi.injectEndpoints({
       providesTags: ["OfflinePack"],
     }),
     generatePack: builder.mutation<
-      { success: boolean; data: any; message: string },
+      { success: boolean; data: unknown; message: string },
       { module: string; lang: string }
     >({
       query: (body) => ({
@@ -50,7 +61,15 @@ export const offlinePackApi = baseApi.injectEndpoints({
       providesTags: ["BatchTranslation"],
     }),
     startBatchTranslation: builder.mutation<
-      { success: boolean; data: { jobId: string; fileId: string; recordCount: number; estimatedMinutes: number } },
+      {
+        success: boolean;
+        data: {
+          jobId: string;
+          fileId: string;
+          recordCount: number;
+          estimatedMinutes: number;
+        };
+      },
       { module: string; targetLang: string }
     >({
       query: (body) => ({
@@ -60,12 +79,12 @@ export const offlinePackApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["BatchTranslation"],
     }),
-    getBatchStatus: builder.query<{ success: boolean; data: any }, string>({
+    getBatchStatus: builder.query<{ success: boolean; data: unknown }, string>({
       query: (jobId) => `/offline-pack/batch-status/${jobId}`,
       providesTags: ["BatchTranslation"],
     }),
     cancelBatchJob: builder.mutation<
-      { success: boolean; data: any; message: string },
+      { success: boolean; data: unknown; message: string },
       string
     >({
       query: (jobId) => ({
@@ -75,35 +94,41 @@ export const offlinePackApi = baseApi.injectEndpoints({
       invalidatesTags: ["BatchTranslation"],
     }),
     processBatchResult: builder.mutation<
-      { success: boolean; data: { savedCount: number; errorCount: number }; message: string },
+      {
+        success: boolean;
+        data: { savedCount: number; errorCount: number };
+        message: string;
+      },
       string
     >({
       query: (jobId) => ({
         url: `/offline-pack/batch-process/${jobId}`,
         method: "POST",
       }),
-      invalidatesTags: ["BatchTranslation", "OfflinePack", "Hadith", "Dua"],
+      invalidatesTags: [
+        "BatchTranslation",
+        "OfflinePack",
+        "Hadith",
+        "Dua",
+        "Knowledge",
+        "Dashboard",
+      ],
     }),
-    getCoverage: builder.query<{
-      success: boolean;
-      data: Record<string, {
-        hadithCount: number;
-        duaCount: number;
-        knowledgeCount: number;
-        quranCount?: number;
-        tafsirCount?: number;
-        bookCount?: number;
-        fatwaCount?: number;
-        hadithPack?: any;
-        duaPack?: any;
-        knowledgePack?: any;
-        quranPack?: any;
-        tafsirPack?: any;
-        bookPack?: any;
-        fatwaPack?: any;
-        activeJobs?: Record<string, any>;
-      }>;
-    }, void>({
+    getCoverage: builder.query<
+      {
+        success: boolean;
+        data: Record<
+          string,
+          ModuleCoverage & {
+            hadithCount: number;
+            duaCount: number;
+            knowledgeCount: number;
+            activeJobs?: Record<string, IBatchJob>;
+          }
+        >;
+      },
+      void
+    >({
       query: () => "/offline-pack/coverage",
       providesTags: ["BatchTranslation", "OfflinePack"],
     }),

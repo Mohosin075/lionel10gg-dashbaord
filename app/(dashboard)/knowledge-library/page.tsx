@@ -1,12 +1,21 @@
 "use client";
+import { LanguageSelect } from "@/components/shared/language-select";
+import { Pagination } from "@/components/shared/pagination";
+import { QueryError } from "@/components/shared/query-error";
+import { SafeHtml } from "@/components/shared/safe-html";
+import type {
+  KnowledgeArticle as Article,
+  KnowledgeBook,
+  KnowledgeFatwa,
+} from "@/lib/api-types";
+import { getErrorMessage } from "@/lib/errors";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
+import Image from "next/image";
 
-import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -30,36 +41,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  useGetArticlesQuery,
   useCreateArticleMutation,
-  useUpdateArticleMutation,
-  useDeleteArticleMutation,
-  useGetBooksQuery,
   useCreateBookMutation,
-  useUpdateBookMutation,
-  useDeleteBookMutation,
-  useGetFatwasQuery,
   useCreateFatwaMutation,
-  useUpdateFatwaMutation,
+  useDeleteArticleMutation,
+  useDeleteBookMutation,
   useDeleteFatwaMutation,
+  useGetArticlesQuery,
+  useGetBooksQuery,
+  useGetFatwasQuery,
+  useLazyGetBookQuery,
+  useUpdateArticleMutation,
+  useUpdateBookMutation,
+  useUpdateFatwaMutation,
 } from "@/redux/features/knowledgeApi";
-import { toast } from "sonner";
 import {
-  Pencil,
-  Plus,
-  Trash2,
-  Eye,
-  Search,
-  Copy,
+  BookOpen,
   Check,
   Clock,
-  BookOpen,
+  Code2,
+  Copy,
+  Eye,
   FileText,
   HelpCircle,
-  Code2,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
 } from "lucide-react";
-
-const LANG = "de";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const CATEGORY_OPTIONS = [
   "Belief",
@@ -76,21 +87,7 @@ const CATEGORY_OPTIONS = [
 
 type Tab = "articles" | "books" | "fatwas";
 
-type KnowledgeArticle = {
-  _id: string;
-  articleId: string;
-  slug: string;
-  title: string;
-  content: string;
-  category: string;
-  readTime: number;
-  imageUrl?: string;
-  audioUrl?: string;
-  source?: "islamhouse" | "manual";
-  isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-};
+type KnowledgeArticle = Article;
 
 type ArticleForm = {
   articleId: string;
@@ -148,25 +145,35 @@ function hasHtmlTags(str?: string | null) {
 
 export default function KnowledgeLibraryPage() {
   const [tab, setTab] = useState<Tab>("articles");
+  const [lang, setLang] = useState("de");
+  const [page, setPage] = useState(1);
   const [category, setCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const searchTerm = useDebouncedValue(searchQuery);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Content Preview Modal State
-  const [previewItem, setPreviewItem] = useState<{
-    type: "article" | "book" | "fatwa";
-    title: string;
-    subtitle?: string;
-    category?: string;
-    source?: string;
-    readTime?: number;
-    imageUrl?: string;
-    content: string;
-    rawItem: any;
-  } | null>(null);
+  const [previewItem, setPreviewItem] = useState<
+    | ({
+        title: string;
+        subtitle?: string;
+        category?: string;
+        source?: string;
+        readTime?: number;
+        imageUrl?: string;
+        content: string;
+      } & (
+        | { type: "article"; rawItem: Article }
+        | { type: "book"; rawItem: KnowledgeBook }
+        | { type: "fatwa"; rawItem: KnowledgeFatwa }
+      ))
+    | null
+  >(null);
 
-  const [previewViewMode, setPreviewViewMode] = useState<"rendered" | "raw">("rendered");
+  const [previewViewMode, setPreviewViewMode] = useState<"rendered" | "raw">(
+    "rendered",
+  );
   const [copied, setCopied] = useState(false);
 
   // Edit modal live preview tab
@@ -186,26 +193,54 @@ export default function KnowledgeLibraryPage() {
     scholar: "",
   });
 
-  const { data: articlesRes, isLoading: loadingArticles } = useGetArticlesQuery({
-    lang: LANG,
+  const {
+    currentData: articlesRes,
+    isError: articlesError,
+    refetch: refetchArticles,
+    isFetching: fetchingArticles,
+    isLoading: loadingArticles,
+  } = useGetArticlesQuery({
+    lang,
     category: category === "all" ? undefined : category,
-    page: 1,
-    limit: 100,
+    page,
+    limit: 20,
+    strictLang: true,
+    searchTerm,
   });
-  const { data: booksRes, isLoading: loadingBooks } = useGetBooksQuery({
-    lang: LANG,
-    page: 1,
-    limit: 100,
+  const {
+    currentData: booksRes,
+    isError: booksError,
+    refetch: refetchBooks,
+    isFetching: fetchingBooks,
+    isLoading: loadingBooks,
+  } = useGetBooksQuery({
+    lang,
+    page,
+    limit: 20,
+    strictLang: true,
+    searchTerm,
   });
-  const { data: fatwasRes, isLoading: loadingFatwas } = useGetFatwasQuery({
-    lang: LANG,
-    page: 1,
-    limit: 100,
+  const {
+    currentData: fatwasRes,
+    isError: fatwasError,
+    refetch: refetchFatwas,
+    isFetching: fetchingFatwas,
+    isLoading: loadingFatwas,
+  } = useGetFatwasQuery({
+    lang,
+    page,
+    limit: 20,
+    strictLang: true,
+    searchTerm,
   });
 
-  const [createArticle, { isLoading: creatingArticle }] = useCreateArticleMutation();
-  const [updateArticle, { isLoading: updatingArticle }] = useUpdateArticleMutation();
-  const [deleteArticle, { isLoading: deletingArticle }] = useDeleteArticleMutation();
+  const [getBook] = useLazyGetBookQuery();
+  const [createArticle, { isLoading: creatingArticle }] =
+    useCreateArticleMutation();
+  const [updateArticle, { isLoading: updatingArticle }] =
+    useUpdateArticleMutation();
+  const [deleteArticle, { isLoading: deletingArticle }] =
+    useDeleteArticleMutation();
   const [createBook, { isLoading: creatingBook }] = useCreateBookMutation();
   const [updateBook, { isLoading: updatingBook }] = useUpdateBookMutation();
   const [deleteBook, { isLoading: deletingBook }] = useDeleteBookMutation();
@@ -225,40 +260,9 @@ export default function KnowledgeLibraryPage() {
     creatingFatwa ||
     updatingFatwa;
 
-  // Filtered lists based on search
-  const filteredArticles = useMemo(() => {
-    if (!searchQuery.trim()) return articles;
-    const q = searchQuery.toLowerCase();
-    return articles.filter(
-      (a) =>
-        a.title?.toLowerCase().includes(q) ||
-        a.category?.toLowerCase().includes(q) ||
-        a.content?.toLowerCase().includes(q)
-    );
-  }, [articles, searchQuery]);
-
-  const filteredBooks = useMemo(() => {
-    if (!searchQuery.trim()) return books;
-    const q = searchQuery.toLowerCase();
-    return books.filter(
-      (b: any) =>
-        b.title?.toLowerCase().includes(q) ||
-        b.author?.toLowerCase().includes(q) ||
-        b.content?.toLowerCase().includes(q)
-    );
-  }, [books, searchQuery]);
-
-  const filteredFatwas = useMemo(() => {
-    if (!searchQuery.trim()) return fatwas;
-    const q = searchQuery.toLowerCase();
-    return fatwas.filter(
-      (f: any) =>
-        f.question?.toLowerCase().includes(q) ||
-        f.scholar?.toLowerCase().includes(q) ||
-        f.answer?.toLowerCase().includes(q)
-    );
-  }, [fatwas, searchQuery]);
-
+  const filteredArticles = articles;
+  const filteredBooks = books;
+  const filteredFatwas = fatwas;
   const openCreate = () => {
     setEditingId(null);
     setEditTab("edit");
@@ -303,20 +307,38 @@ export default function KnowledgeLibraryPage() {
     setOpen(true);
   };
 
-  const openEditBook = (book: any) => {
-    setEditingId(book._id);
-    setEditTab("edit");
-    setBookForm({
-      bookId: book.bookId,
-      title: book.title,
-      author: book.author || "",
-      content: book.content,
-    });
-    setPreviewItem(null);
-    setOpen(true);
+  const openEditBook = async (item: KnowledgeBook) => {
+    try {
+      const book = (await getBook(item._id).unwrap()).data;
+      setEditingId(book._id);
+      setEditTab("edit");
+      setBookForm({
+        bookId: book.bookId,
+        title: book.title,
+        author: book.author || "",
+        content: book.content || "",
+      });
+      setPreviewItem(null);
+      setOpen(true);
+    } catch {
+      toast.error("Could not load the complete book. Please try again.");
+    }
   };
-
-  const openEditFatwa = (fatwa: any) => {
+  const openPreviewBook = async (item: KnowledgeBook) => {
+    try {
+      const book = (await getBook(item._id).unwrap()).data;
+      setPreviewItem({
+        type: "book",
+        title: book.title,
+        subtitle: book.author,
+        content: book.content || "",
+        rawItem: book,
+      });
+    } catch {
+      toast.error("Could not load book content.");
+    }
+  };
+  const openEditFatwa = (fatwa: KnowledgeFatwa) => {
     setEditingId(fatwa._id);
     setEditTab("edit");
     setFatwaForm({
@@ -352,7 +374,7 @@ export default function KnowledgeLibraryPage() {
           content: articleForm.content,
           category: articleForm.category,
           readTime: Number(articleForm.readTime) || 5,
-          lang: LANG,
+          lang,
           source: articleForm.source,
           imageUrl: articleForm.imageUrl || undefined,
         };
@@ -371,7 +393,7 @@ export default function KnowledgeLibraryPage() {
           title: bookForm.title.trim(),
           author: bookForm.author.trim() || undefined,
           content: bookForm.content,
-          lang: LANG,
+          lang,
         };
         if (editingId) {
           await updateBook({ id: editingId, ...payload }).unwrap();
@@ -388,7 +410,7 @@ export default function KnowledgeLibraryPage() {
           question: fatwaForm.question.trim(),
           answer: fatwaForm.answer,
           scholar: fatwaForm.scholar.trim() || undefined,
-          lang: LANG,
+          lang,
         };
         if (editingId) {
           await updateFatwa({ id: editingId, ...payload }).unwrap();
@@ -400,7 +422,7 @@ export default function KnowledgeLibraryPage() {
       setOpen(false);
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Failed to save");
+      toast.error(getErrorMessage(err, "Failed to save"));
     }
   };
 
@@ -413,7 +435,7 @@ export default function KnowledgeLibraryPage() {
       toast.success("Deleted");
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Failed to delete");
+      toast.error(getErrorMessage(err, "Failed to delete"));
     }
   };
 
@@ -429,17 +451,37 @@ export default function KnowledgeLibraryPage() {
           className="bg-emerald-900 hover:bg-emerald-800 self-start sm:self-auto gap-2"
         >
           <Plus className="h-4 w-4" />
-          Add {tab === "articles" ? "Article" : tab === "books" ? "Book" : "Fatwa"}
+          Add{" "}
+          {tab === "articles" ? "Article" : tab === "books" ? "Book" : "Fatwa"}
         </Button>
       </div>
 
+      <LanguageSelect
+        value={lang}
+        onChange={(value) => {
+          setLang(value);
+          setPage(1);
+        }}
+      />
+      {(articlesError || booksError || fatwasError) && (
+        <QueryError
+          retry={() => {
+            void refetchArticles();
+            void refetchBooks();
+            void refetchFatwas();
+          }}
+        />
+      )}
       {/* Tabs, Search & Filters Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200/80">
             <button
               type="button"
-              onClick={() => setTab("articles")}
+              onClick={() => {
+                setTab("articles");
+                setPage(1);
+              }}
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 tab === "articles"
                   ? "bg-emerald-900 text-white shadow-xs"
@@ -451,7 +493,10 @@ export default function KnowledgeLibraryPage() {
             </button>
             <button
               type="button"
-              onClick={() => setTab("books")}
+              onClick={() => {
+                setTab("books");
+                setPage(1);
+              }}
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 tab === "books"
                   ? "bg-emerald-900 text-white shadow-xs"
@@ -463,7 +508,10 @@ export default function KnowledgeLibraryPage() {
             </button>
             <button
               type="button"
-              onClick={() => setTab("fatwas")}
+              onClick={() => {
+                setTab("fatwas");
+                setPage(1);
+              }}
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 tab === "fatwas"
                   ? "bg-emerald-900 text-white shadow-xs"
@@ -476,7 +524,13 @@ export default function KnowledgeLibraryPage() {
           </div>
 
           {tab === "articles" && (
-            <Select value={category} onValueChange={setCategory}>
+            <Select
+              value={category}
+              onValueChange={(value) => {
+                setCategory(value);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-40 h-9 text-xs">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
@@ -498,7 +552,10 @@ export default function KnowledgeLibraryPage() {
           <Input
             placeholder="Search title or content..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
             className="pl-9 h-9 text-xs bg-white"
           />
         </div>
@@ -508,9 +565,15 @@ export default function KnowledgeLibraryPage() {
       <Card>
         <CardHeader className="py-4 px-6 border-b border-slate-100 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-semibold capitalize flex items-center gap-2">
-            {tab === "articles" && <FileText className="h-4 w-4 text-emerald-700" />}
-            {tab === "books" && <BookOpen className="h-4 w-4 text-emerald-700" />}
-            {tab === "fatwas" && <HelpCircle className="h-4 w-4 text-emerald-700" />}
+            {tab === "articles" && (
+              <FileText className="h-4 w-4 text-emerald-700" />
+            )}
+            {tab === "books" && (
+              <BookOpen className="h-4 w-4 text-emerald-700" />
+            )}
+            {tab === "fatwas" && (
+              <HelpCircle className="h-4 w-4 text-emerald-700" />
+            )}
             {tab} Manager
           </CardTitle>
           <span className="text-xs text-slate-400">
@@ -523,7 +586,9 @@ export default function KnowledgeLibraryPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/70">
-                    <TableHead className="w-[42%]">Article Title &amp; Snippet</TableHead>
+                    <TableHead className="w-[42%]">
+                      Article Title &amp; Snippet
+                    </TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Read Time</TableHead>
@@ -534,13 +599,19 @@ export default function KnowledgeLibraryPage() {
                 <TableBody>
                   {loadingArticles ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-sm text-slate-400">
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-sm text-slate-400"
+                      >
                         Loading articles...
                       </TableCell>
                     </TableRow>
                   ) : filteredArticles.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-sm text-slate-400">
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-sm text-slate-400"
+                      >
                         No articles found.
                       </TableCell>
                     </TableRow>
@@ -594,11 +665,20 @@ export default function KnowledgeLibraryPage() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={article.isActive === false ? "restricted" : "active"}>
+                          <Badge
+                            variant={
+                              article.isActive === false
+                                ? "restricted"
+                                : "active"
+                            }
+                          >
                             {article.isActive === false ? "Inactive" : "Active"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                        <TableCell
+                          className="text-right space-x-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Button
                             variant="ghost"
                             size="sm"
@@ -654,7 +734,9 @@ export default function KnowledgeLibraryPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/70">
-                    <TableHead className="w-[50%]">Book Title &amp; Snippet</TableHead>
+                    <TableHead className="w-[50%]">
+                      Book Title &amp; Snippet
+                    </TableHead>
                     <TableHead>Author</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -662,29 +744,29 @@ export default function KnowledgeLibraryPage() {
                 <TableBody>
                   {loadingBooks ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-sm text-slate-400">
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-8 text-sm text-slate-400"
+                      >
                         Loading books...
                       </TableCell>
                     </TableRow>
                   ) : filteredBooks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-sm text-slate-400">
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-8 text-sm text-slate-400"
+                      >
                         No books found.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredBooks.map((book: any) => (
+                    filteredBooks.map((book: KnowledgeBook) => (
                       <TableRow
                         key={book._id}
                         className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
                         onClick={() => {
-                          setPreviewItem({
-                            type: "book",
-                            title: book.title,
-                            subtitle: book.author ? `Author: ${book.author}` : undefined,
-                            content: book.content,
-                            rawItem: book,
-                          });
+                          void openPreviewBook(book);
                         }}
                       >
                         <TableCell className="py-3.5">
@@ -701,19 +783,16 @@ export default function KnowledgeLibraryPage() {
                         <TableCell className="text-xs text-slate-600 font-medium">
                           {book.author || "—"}
                         </TableCell>
-                        <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                        <TableCell
+                          className="text-right space-x-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Button
                             variant="ghost"
                             size="sm"
                             className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 h-8 px-2 text-xs gap-1"
                             onClick={() => {
-                              setPreviewItem({
-                                type: "book",
-                                title: book.title,
-                                subtitle: book.author ? `Author: ${book.author}` : undefined,
-                                content: book.content,
-                                rawItem: book,
-                              });
+                              void openPreviewBook(book);
                             }}
                           >
                             <Eye className="h-3.5 w-3.5" />
@@ -750,7 +829,9 @@ export default function KnowledgeLibraryPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/70">
-                    <TableHead className="w-[50%]">Question &amp; Answer Preview</TableHead>
+                    <TableHead className="w-[50%]">
+                      Question &amp; Answer Preview
+                    </TableHead>
                     <TableHead>Scholar</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -758,18 +839,24 @@ export default function KnowledgeLibraryPage() {
                 <TableBody>
                   {loadingFatwas ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-sm text-slate-400">
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-8 text-sm text-slate-400"
+                      >
                         Loading fatwas...
                       </TableCell>
                     </TableRow>
                   ) : filteredFatwas.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-sm text-slate-400">
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-8 text-sm text-slate-400"
+                      >
                         No fatwas found.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredFatwas.map((fatwa: any) => (
+                    filteredFatwas.map((fatwa: KnowledgeFatwa) => (
                       <TableRow
                         key={fatwa._id}
                         className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
@@ -777,7 +864,9 @@ export default function KnowledgeLibraryPage() {
                           setPreviewItem({
                             type: "fatwa",
                             title: fatwa.question,
-                            subtitle: fatwa.scholar ? `Scholar: ${fatwa.scholar}` : undefined,
+                            subtitle: fatwa.scholar
+                              ? `Scholar: ${fatwa.scholar}`
+                              : undefined,
                             content: fatwa.answer,
                             rawItem: fatwa,
                           });
@@ -797,7 +886,10 @@ export default function KnowledgeLibraryPage() {
                         <TableCell className="text-xs text-slate-600 font-medium">
                           {fatwa.scholar || "—"}
                         </TableCell>
-                        <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                        <TableCell
+                          className="text-right space-x-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Button
                             variant="ghost"
                             size="sm"
@@ -806,7 +898,9 @@ export default function KnowledgeLibraryPage() {
                               setPreviewItem({
                                 type: "fatwa",
                                 title: fatwa.question,
-                                subtitle: fatwa.scholar ? `Scholar: ${fatwa.scholar}` : undefined,
+                                subtitle: fatwa.scholar
+                                  ? `Scholar: ${fatwa.scholar}`
+                                  : undefined,
                                 content: fatwa.answer,
                                 rawItem: fatwa,
                               });
@@ -841,6 +935,18 @@ export default function KnowledgeLibraryPage() {
             </div>
           )}
         </CardContent>
+        <Pagination
+          page={page}
+          meta={
+            tab === "articles"
+              ? articlesRes?.meta
+              : tab === "books"
+                ? booksRes?.meta
+                : fatwasRes?.meta
+          }
+          onChange={setPage}
+          disabled={fetchingArticles || fetchingBooks || fetchingFatwas}
+        />
       </Card>
 
       {/* RICH CONTENT PREVIEW / VIEWER MODAL WITH HTML RENDERING */}
@@ -877,7 +983,9 @@ export default function KnowledgeLibraryPage() {
                   {previewItem?.title}
                 </h2>
                 {previewItem?.subtitle && (
-                  <p className="text-xs text-slate-500 font-mono">{previewItem.subtitle}</p>
+                  <p className="text-xs text-slate-500 font-mono">
+                    {previewItem.subtitle}
+                  </p>
                 )}
               </div>
 
@@ -914,7 +1022,10 @@ export default function KnowledgeLibraryPage() {
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {previewItem?.imageUrl && (
               <div className="w-full h-48 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                <img
+                <Image
+                  unoptimized
+                  width={640}
+                  height={360}
                   src={previewItem.imageUrl}
                   alt={previewItem.title}
                   className="w-full h-full object-cover"
@@ -925,9 +1036,9 @@ export default function KnowledgeLibraryPage() {
             {previewViewMode === "rendered" ? (
               hasHtmlTags(previewItem?.content || "") ? (
                 /* PROPERLY RENDERED HTML */
-                <div
+                <SafeHtml
                   className="prose prose-slate max-w-none text-slate-800 text-sm leading-relaxed font-sans bg-white p-6 rounded-xl border border-slate-200/90 shadow-2xs [&>p]:mb-3 [&>p:last-child]:mb-0 [&>h1]:text-lg [&>h1]:font-bold [&>h2]:text-base [&>h2]:font-bold [&>h3]:text-sm [&>h3]:font-semibold [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>blockquote]:border-l-4 [&>blockquote]:border-emerald-500 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:text-slate-600 [&_a]:text-emerald-700 [&_a]:underline"
-                  dangerouslySetInnerHTML={{ __html: previewItem?.content || "" }}
+                  html={previewItem?.content || ""}
                 />
               ) : (
                 /* Plain Text with line breaks */
@@ -950,7 +1061,9 @@ export default function KnowledgeLibraryPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1.5 text-xs text-slate-600"
-                onClick={() => handleCopyContent(previewItem?.content || "", false)}
+                onClick={() =>
+                  handleCopyContent(previewItem?.content || "", false)
+                }
               >
                 {copied ? (
                   <>
@@ -966,7 +1079,9 @@ export default function KnowledgeLibraryPage() {
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 text-xs text-slate-500"
-                onClick={() => handleCopyContent(previewItem?.content || "", true)}
+                onClick={() =>
+                  handleCopyContent(previewItem?.content || "", true)
+                }
               >
                 <Code2 className="h-3.5 w-3.5" /> Copy Raw HTML
               </Button>
@@ -986,13 +1101,20 @@ export default function KnowledgeLibraryPage() {
                 className="bg-emerald-900 hover:bg-emerald-800 text-xs gap-1.5"
                 onClick={() => {
                   if (!previewItem) return;
-                  if (previewItem.type === "article") openEditArticle(previewItem.rawItem);
-                  else if (previewItem.type === "book") openEditBook(previewItem.rawItem);
+                  if (previewItem.type === "article")
+                    openEditArticle(previewItem.rawItem);
+                  else if (previewItem.type === "book")
+                    openEditBook(previewItem.rawItem);
                   else openEditFatwa(previewItem.rawItem);
                 }}
               >
                 <Pencil className="h-3.5 w-3.5" />
-                Edit {previewItem?.type === "article" ? "Article" : previewItem?.type === "book" ? "Book" : "Fatwa"}
+                Edit{" "}
+                {previewItem?.type === "article"
+                  ? "Article"
+                  : previewItem?.type === "book"
+                    ? "Book"
+                    : "Fatwa"}
               </Button>
             </div>
           </div>
@@ -1005,7 +1127,11 @@ export default function KnowledgeLibraryPage() {
           <DialogHeader>
             <DialogTitle>
               {editingId ? "Edit" : "Add"}{" "}
-              {tab === "articles" ? "Article" : tab === "books" ? "Book" : "Fatwa"}
+              {tab === "articles"
+                ? "Article"
+                : tab === "books"
+                  ? "Book"
+                  : "Fatwa"}
             </DialogTitle>
           </DialogHeader>
 
@@ -1141,13 +1267,19 @@ export default function KnowledgeLibraryPage() {
                     placeholder="Enter or paste formatted article text/HTML..."
                     value={articleForm.content}
                     onChange={(e) =>
-                      setArticleForm({ ...articleForm, content: e.target.value })
+                      setArticleForm({
+                        ...articleForm,
+                        content: e.target.value,
+                      })
                     }
                   />
                 ) : (
-                  <div
+                  <SafeHtml
                     className="min-h-56 p-4 rounded-md border border-slate-200 bg-white text-sm text-slate-800 overflow-y-auto max-h-72 prose prose-slate [&>p]:mb-2"
-                    dangerouslySetInnerHTML={{ __html: articleForm.content || "<p className='text-slate-400 italic'>No content entered yet.</p>" }}
+                    html={
+                      articleForm.content ||
+                      "<p className='text-slate-400 italic'>No content entered yet.</p>"
+                    }
                   />
                 )}
               </div>

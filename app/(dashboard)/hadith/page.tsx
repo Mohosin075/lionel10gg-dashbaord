@@ -1,32 +1,11 @@
 "use client";
+import { QueryError } from "@/components/shared/query-error";
+import { Label } from "@/components/ui/label";
+import { getErrorMessage } from "@/lib/errors";
 
-import React, { useState } from "react";
-import {
-  BookText,
-  Plus,
-  RefreshCw,
-  Search,
-  Edit2,
-  Trash2,
-  CheckCircle,
-  Download,
-  BookOpen,
-} from "lucide-react";
-import { toast } from "sonner";
-import {
-  useGetCollectionsQuery,
-  useGetHadithsQuery,
-  useCreateHadithMutation,
-  useUpdateHadithMutation,
-  useDeleteHadithMutation,
-  useSyncExternalHadithMutation,
-  IHadith,
-} from "@/redux/features/hadith/hadithApi";
-import { APP_LANGUAGES } from "@/lib/constants/languages";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -42,18 +22,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { APP_LANGUAGES } from "@/lib/constants/languages";
+import {
+  IHadith,
+  useCreateHadithMutation,
+  useDeleteHadithMutation,
+  useGetCollectionsQuery,
+  useGetHadithsQuery,
+  useSyncExternalHadithMutation,
+  useUpdateHadithMutation,
+} from "@/redux/features/hadith/hadithApi";
+import {
+  BookOpen,
+  BookText,
+  Download,
+  Edit2,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function HadithPage() {
   const [selectedLang, setSelectedLang] = useState("en");
   const [selectedSource, setSelectedSource] = useState("Sahih al-Bukhari");
-  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
 
   // Queries & Mutations
-  const { data: colRes, isLoading: isLoadingCols, refetch: refetchCols } = useGetCollectionsQuery({
+  const {
+    data: colRes,
+    isError: categoryError,
+    refetch: refetchCols,
+  } = useGetCollectionsQuery({
     lang: selectedLang,
   });
-  const { data: hadithRes, isLoading: isLoadingHadiths, refetch: refetchHadiths } = useGetHadithsQuery({
+  const {
+    data: hadithRes,
+    isError: listError,
+    isLoading: isLoadingHadiths,
+    refetch: refetchHadiths,
+  } = useGetHadithsQuery({
     source: selectedSource,
     lang: selectedLang,
     page,
@@ -62,8 +71,9 @@ export default function HadithPage() {
 
   const [createHadith, { isLoading: isCreating }] = useCreateHadithMutation();
   const [updateHadith, { isLoading: isUpdating }] = useUpdateHadithMutation();
-  const [deleteHadith, { isLoading: isDeleting }] = useDeleteHadithMutation();
-  const [syncExternal, { isLoading: isSyncing }] = useSyncExternalHadithMutation();
+  const [deleteHadith] = useDeleteHadithMutation();
+  const [syncExternal, { isLoading: isSyncing }] =
+    useSyncExternalHadithMutation();
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -72,7 +82,8 @@ export default function HadithPage() {
   const [currentHadith, setCurrentHadith] = useState<IHadith | null>(null);
 
   // Form states
-  const [formHadithNo, setFormHadithNo] = useState<number>(1);
+  const [formHadithNo, setFormHadithNo] = useState("1");
+  const [formCategory, setFormCategory] = useState("General");
   const [formChapter, setFormChapter] = useState("");
   const [formArabic, setFormArabic] = useState("");
   const [formTranslation, setFormTranslation] = useState("");
@@ -85,11 +96,17 @@ export default function HadithPage() {
 
   const collections = colRes?.data || [];
   const hadiths = hadithRes?.data || [];
-  const meta = hadithRes?.meta || { total: 0, page: 1, limit: 10, totalPages: 1 };
+  const meta = hadithRes?.meta || {
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  };
 
   const handleOpenEdit = (h: IHadith) => {
     setCurrentHadith(h);
-    setFormHadithNo(h.hadithNo);
+    setFormHadithNo(String(h.hadithNo));
+    setFormCategory(h.category || "General");
     setFormChapter(h.chapter || "");
     setFormArabic(h.arabicText);
     setFormTranslation(h.translation);
@@ -98,8 +115,15 @@ export default function HadithPage() {
   };
 
   const handleSaveHadith = async () => {
-    if (!formArabic || !formTranslation) {
-      toast.error("Arabic text and translation are required.");
+    if (
+      !formHadithNo.trim() ||
+      !formArabic.trim() ||
+      !formTranslation.trim() ||
+      !formCategory.trim()
+    ) {
+      toast.error(
+        "Hadith number, category, Arabic text and translation are required.",
+      );
       return;
     }
 
@@ -108,8 +132,9 @@ export default function HadithPage() {
         await updateHadith({
           id: currentHadith._id,
           data: {
-            hadithNo: Number(formHadithNo),
-            chapter: formChapter,
+            hadithNo: formHadithNo.trim(),
+            chapter: formChapter.trim(),
+            category: formCategory.trim(),
             arabicText: formArabic,
             translation: formTranslation,
             authenticity: formAuthenticity,
@@ -119,9 +144,10 @@ export default function HadithPage() {
         setIsEditOpen(false);
       } else {
         await createHadith({
-          hadithNo: Number(formHadithNo),
+          hadithNo: formHadithNo.trim(),
           source: selectedSource,
-          chapter: formChapter,
+          chapter: formChapter.trim(),
+          category: formCategory.trim(),
           arabicText: formArabic,
           translation: formTranslation,
           authenticity: formAuthenticity,
@@ -133,8 +159,8 @@ export default function HadithPage() {
       }
       refetchHadiths();
       refetchCols();
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Failed to save hadith");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save hadith"));
     }
   };
 
@@ -145,8 +171,8 @@ export default function HadithPage() {
       toast.success("Hadith deleted successfully!");
       refetchHadiths();
       refetchCols();
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Delete failed");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Delete failed"));
     }
   };
 
@@ -160,16 +186,24 @@ export default function HadithPage() {
       }).unwrap();
       toast.success(
         `Seeded ${res.data?.createdCount || 0} new, updated ${res.data?.updatedCount || 0} hadiths!`,
-        { id: "sync" }
+        { id: "sync" },
       );
       setIsSyncOpen(false);
       refetchHadiths();
       refetchCols();
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Sync failed", { id: "sync" });
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Sync failed"), { id: "sync" });
     }
   };
 
+  if (listError || categoryError)
+    return (
+      <QueryError
+        retry={() => {
+          void refetchHadiths();
+        }}
+      />
+    );
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -184,7 +218,8 @@ export default function HadithPage() {
                 Hadith Manager
               </h1>
               <p className="text-sm text-slate-500">
-                Browse, edit, seed, and publish 8 canonical Hadith collections across languages
+                Browse, edit, seed, and publish 8 canonical Hadith collections
+                across languages
               </p>
             </div>
           </div>
@@ -204,7 +239,8 @@ export default function HadithPage() {
           <Button
             onClick={() => {
               setCurrentHadith(null);
-              setFormHadithNo(hadiths.length + 1);
+              setFormHadithNo(String((meta.total || 0) + 1));
+              setFormCategory("General");
               setFormChapter("");
               setFormArabic("");
               setFormTranslation("");
@@ -258,8 +294,12 @@ export default function HadithPage() {
                     : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
                 }`}
               >
-                <span className="text-xs font-bold line-clamp-1">{col.name.replace("Sahih ", "").replace("Sunan ", "")}</span>
-                <span className={`text-[11px] mt-1.5 font-mono ${isSelected ? "text-amber-200" : "text-slate-500"}`}>
+                <span className="text-xs font-bold line-clamp-1">
+                  {col.name.replace("Sahih ", "").replace("Sunan ", "")}
+                </span>
+                <span
+                  className={`text-[11px] mt-1.5 font-mono ${isSelected ? "text-amber-200" : "text-slate-500"}`}
+                >
                   {col.count.toLocaleString()} hadiths
                 </span>
               </button>
@@ -277,7 +317,9 @@ export default function HadithPage() {
               {meta.total.toLocaleString()} total
             </Badge>
           </h2>
-          <p className="text-xs text-slate-500">Showing page {meta.page} of {meta.totalPages}</p>
+          <p className="text-xs text-slate-500">
+            Showing page {meta.page} of {meta.totalPages}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -309,14 +351,20 @@ export default function HadithPage() {
       {isLoadingHadiths ? (
         <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
           <RefreshCw className="h-8 w-8 animate-spin text-amber-900" />
-          <p className="text-sm font-medium">Loading hadiths from {selectedSource}...</p>
+          <p className="text-sm font-medium">
+            Loading hadiths from {selectedSource}...
+          </p>
         </div>
       ) : hadiths.length === 0 ? (
         <div className="p-16 text-center flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
           <BookOpen className="h-12 w-12 text-slate-300" />
-          <h3 className="text-base font-semibold text-slate-700">No Hadiths Found in Database</h3>
+          <h3 className="text-base font-semibold text-slate-700">
+            No Hadiths Found in Database
+          </h3>
           <p className="text-xs text-slate-400 max-w-md">
-            No hadiths found for {selectedSource} in &apos;{selectedLang}&apos;. Click &quot;Seed / Sync External&quot; to ingest from the global repository.
+            No hadiths found for {selectedSource} in &apos;{selectedLang}&apos;.
+            Click &quot;Seed / Sync External&quot; to ingest from the global
+            repository.
           </p>
           <Button
             onClick={() => setIsSyncOpen(true)}
@@ -328,7 +376,10 @@ export default function HadithPage() {
       ) : (
         <div className="space-y-4">
           {hadiths.map((h) => (
-            <Card key={h._id} className="rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <Card
+              key={h._id}
+              className="rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+            >
               <CardHeader className="pb-3 border-b border-slate-50 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <span className="font-mono text-xs font-bold px-2.5 py-1 bg-amber-100 text-amber-900 rounded-lg">
@@ -340,7 +391,10 @@ export default function HadithPage() {
                     </span>
                   )}
                   {h.authenticity && (
-                    <Badge variant="outline" className="text-xs font-semibold text-emerald-800 bg-emerald-50 border-emerald-200">
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-semibold text-emerald-800 bg-emerald-50 border-emerald-200"
+                    >
                       {h.authenticity}
                     </Badge>
                   )}
@@ -385,36 +439,49 @@ export default function HadithPage() {
       )}
 
       {/* Add / Edit Hadith Modal */}
-      <Dialog open={isAddOpen || isEditOpen} onOpenChange={(open) => {
-        if (!open) {
-          setIsAddOpen(false);
-          setIsEditOpen(false);
-        }
-      }}>
+      <Dialog
+        open={isAddOpen || isEditOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddOpen(false);
+            setIsEditOpen(false);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
-              {currentHadith ? "Edit Hadith" : `Add Hadith to ${selectedSource}`}
+              {currentHadith
+                ? "Edit Hadith"
+                : `Add Hadith to ${selectedSource}`}
             </DialogTitle>
             <DialogDescription>
-              Changes are immediately reflected in MongoDB and will be included in the next offline pack generation.
+              Changes are immediately reflected in MongoDB and will be included
+              in the next offline pack generation.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Hadith Number</label>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  Hadith Number
+                </label>
                 <Input
-                  type="number"
+                  type="text"
                   value={formHadithNo}
-                  onChange={(e) => setFormHadithNo(Number(e.target.value))}
+                  onChange={(e) => setFormHadithNo(e.target.value)}
                   className="rounded-xl text-sm"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Authenticity / Grade</label>
-                <Select value={formAuthenticity} onValueChange={setFormAuthenticity}>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  Authenticity / Grade
+                </label>
+                <Select
+                  value={formAuthenticity}
+                  onValueChange={setFormAuthenticity}
+                >
                   <SelectTrigger className="rounded-xl text-sm">
                     <SelectValue />
                   </SelectTrigger>
@@ -428,8 +495,17 @@ export default function HadithPage() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Input
+                value={formCategory}
+                onChange={(event) => setFormCategory(event.target.value)}
+              />
+            </div>
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Chapter Name</label>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Chapter Name
+              </label>
               <Input
                 type="text"
                 placeholder="e.g. Book of Revelation"
@@ -440,7 +516,9 @@ export default function HadithPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Arabic Text</label>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Arabic Text
+              </label>
               <textarea
                 rows={3}
                 dir="rtl"
@@ -452,7 +530,9 @@ export default function HadithPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Translation ({selectedLang})</label>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Translation ({selectedLang})
+              </label>
               <textarea
                 rows={3}
                 placeholder="Enter translated text..."
@@ -494,33 +574,54 @@ export default function HadithPage() {
               Sync from Global Hadith Repository
             </DialogTitle>
             <DialogDescription>
-              Fetch canonical editions from github.com/fawazahmed0/hadith-api directly into your database.
+              Fetch canonical editions from github.com/fawazahmed0/hadith-api
+              directly into your database.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Target Edition</label>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Target Edition
+              </label>
               <Select value={syncEdition} onValueChange={setSyncEdition}>
                 <SelectTrigger className="rounded-xl text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="eng-bukhari">Sahih al-Bukhari (eng-bukhari)</SelectItem>
-                  <SelectItem value="eng-muslim">Sahih Muslim (eng-muslim)</SelectItem>
-                  <SelectItem value="eng-abudawud">Sunan Abi Dawud (eng-abudawud)</SelectItem>
-                  <SelectItem value="eng-tirmidhi">Jami at-Tirmidhi (eng-tirmidhi)</SelectItem>
-                  <SelectItem value="eng-nasai">Sunan an-Nasai (eng-nasai)</SelectItem>
-                  <SelectItem value="eng-ibnmajah">Sunan Ibn Majah (eng-ibnmajah)</SelectItem>
-                  <SelectItem value="eng-malik">Muwatta Malik (eng-malik)</SelectItem>
-                  <SelectItem value="eng-nawawi">Forty Hadith Nawawi (eng-nawawi)</SelectItem>
+                  <SelectItem value="eng-bukhari">
+                    Sahih al-Bukhari (eng-bukhari)
+                  </SelectItem>
+                  <SelectItem value="eng-muslim">
+                    Sahih Muslim (eng-muslim)
+                  </SelectItem>
+                  <SelectItem value="eng-abudawud">
+                    Sunan Abi Dawud (eng-abudawud)
+                  </SelectItem>
+                  <SelectItem value="eng-tirmidhi">
+                    Jami at-Tirmidhi (eng-tirmidhi)
+                  </SelectItem>
+                  <SelectItem value="eng-nasai">
+                    Sunan an-Nasai (eng-nasai)
+                  </SelectItem>
+                  <SelectItem value="eng-ibnmajah">
+                    Sunan Ibn Majah (eng-ibnmajah)
+                  </SelectItem>
+                  <SelectItem value="eng-malik">
+                    Muwatta Malik (eng-malik)
+                  </SelectItem>
+                  <SelectItem value="eng-nawawi">
+                    Forty Hadith Nawawi (eng-nawawi)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">From Hadith #</label>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  From Hadith #
+                </label>
                 <Input
                   type="number"
                   value={syncFrom}
@@ -529,7 +630,9 @@ export default function HadithPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">To Hadith #</label>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  To Hadith #
+                </label>
                 <Input
                   type="number"
                   value={syncTo}
@@ -541,7 +644,11 @@ export default function HadithPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSyncOpen(false)} className="rounded-xl">
+            <Button
+              variant="outline"
+              onClick={() => setIsSyncOpen(false)}
+              className="rounded-xl"
+            >
               Cancel
             </Button>
             <Button

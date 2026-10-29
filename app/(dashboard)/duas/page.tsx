@@ -1,34 +1,10 @@
 "use client";
+import { QueryError } from "@/components/shared/query-error";
+import { getErrorMessage } from "@/lib/errors";
 
-import React, { useState } from "react";
-import {
-  Heart,
-  Plus,
-  RefreshCw,
-  Search,
-  Edit2,
-  Trash2,
-  Sparkles,
-  Download,
-  Volume2,
-  Repeat,
-  BookOpen,
-} from "lucide-react";
-import { toast } from "sonner";
-import {
-  useGetDuasQuery,
-  useGetDuaCategoriesQuery,
-  useCreateDuaMutation,
-  useUpdateDuaMutation,
-  useDeleteDuaMutation,
-  useSyncEnglishDuasMutation,
-  IDua,
-} from "@/redux/features/dua/duaApi";
-import { APP_LANGUAGES } from "@/lib/constants/languages";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -44,18 +21,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { APP_LANGUAGES } from "@/lib/constants/languages";
+import {
+  IDua,
+  useCreateDuaMutation,
+  useDeleteDuaMutation,
+  useGetDuaCategoriesQuery,
+  useGetDuasQuery,
+  useSyncEnglishDuasMutation,
+  useUpdateDuaMutation,
+} from "@/redux/features/dua/duaApi";
+import {
+  BookOpen,
+  Download,
+  Edit2,
+  Heart,
+  Plus,
+  RefreshCw,
+  Repeat,
+  Trash2,
+  Volume2,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function DuasPage() {
   const [selectedLang, setSelectedLang] = useState("en");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
 
   // Queries
-  const { data: catRes, isLoading: isLoadingCats } = useGetDuaCategoriesQuery({
+  const { data: catRes, isError: categoryError } = useGetDuaCategoriesQuery({
     lang: selectedLang,
   });
-  const { data: duasRes, isLoading: isLoadingDuas, refetch } = useGetDuasQuery({
+  const {
+    data: duasRes,
+    isError: listError,
+    isLoading: isLoadingDuas,
+    refetch,
+  } = useGetDuasQuery({
     lang: selectedLang,
     category: selectedCategory === "all" ? undefined : selectedCategory,
     page,
@@ -64,8 +68,9 @@ export default function DuasPage() {
 
   const [createDua, { isLoading: isCreating }] = useCreateDuaMutation();
   const [updateDua, { isLoading: isUpdating }] = useUpdateDuaMutation();
-  const [deleteDua, { isLoading: isDeleting }] = useDeleteDuaMutation();
-  const [syncEnglishDuas, { isLoading: isSyncing }] = useSyncEnglishDuasMutation();
+  const [deleteDua] = useDeleteDuaMutation();
+  const [syncEnglishDuas, { isLoading: isSyncing }] =
+    useSyncEnglishDuasMutation();
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -135,8 +140,8 @@ export default function DuasPage() {
         setIsAddOpen(false);
       }
       refetch();
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Failed to save Dua");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save Dua"));
     }
   };
 
@@ -146,25 +151,35 @@ export default function DuasPage() {
       await deleteDua(id).unwrap();
       toast.success("Dua deleted successfully!");
       refetch();
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Delete failed");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Delete failed"));
     }
   };
 
   const handleSyncHisn = async () => {
     try {
-      toast.loading("Syncing canonical Hisn al-Muslim English duas...", { id: "hisn" });
+      toast.loading("Syncing canonical Hisn al-Muslim English duas...", {
+        id: "hisn",
+      });
       const res = await syncEnglishDuas().unwrap();
       toast.success(
         `Ingested ${res.data?.createdCount || 0} new, updated ${res.data?.updatedCount || 0} duas!`,
-        { id: "hisn" }
+        { id: "hisn" },
       );
       refetch();
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Sync failed", { id: "hisn" });
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Sync failed"), { id: "hisn" });
     }
   };
 
+  if (listError || categoryError)
+    return (
+      <QueryError
+        retry={() => {
+          void refetch();
+        }}
+      />
+    );
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -179,7 +194,8 @@ export default function DuasPage() {
                 Dua Manager
               </h1>
               <p className="text-sm text-slate-500">
-                Manage Islamic Supplications &amp; Invocations (Hisn al-Muslim) across languages
+                Manage Islamic Supplications &amp; Invocations (Hisn al-Muslim)
+                across languages
               </p>
             </div>
           </div>
@@ -201,7 +217,9 @@ export default function DuasPage() {
             onClick={() => {
               setCurrentDua(null);
               setFormTitle("");
-              setFormCategory(selectedCategory !== "all" ? selectedCategory : "General");
+              setFormCategory(
+                selectedCategory !== "all" ? selectedCategory : "General",
+              );
               setFormArabic("");
               setFormTranslation("");
               setFormTransliteration("");
@@ -242,10 +260,13 @@ export default function DuasPage() {
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Category:
             </span>
-            <Select value={selectedCategory} onValueChange={(val) => {
-              setSelectedCategory(val);
-              setPage(1);
-            }}>
+            <Select
+              value={selectedCategory}
+              onValueChange={(val) => {
+                setSelectedCategory(val);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-48 h-8 text-xs rounded-lg">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
@@ -266,12 +287,18 @@ export default function DuasPage() {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span>{selectedCategory === "all" ? "All Supplications" : selectedCategory}</span>
+            <span>
+              {selectedCategory === "all"
+                ? "All Supplications"
+                : selectedCategory}
+            </span>
             <Badge variant="outline" className="text-xs font-normal">
               {meta.total.toLocaleString()} duas
             </Badge>
           </h2>
-          <p className="text-xs text-slate-500">Showing page {meta.page} of {meta.totalPages || 1}</p>
+          <p className="text-xs text-slate-500">
+            Showing page {meta.page} of {meta.totalPages || 1}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -308,9 +335,12 @@ export default function DuasPage() {
       ) : duas.length === 0 ? (
         <div className="p-16 text-center flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
           <BookOpen className="h-12 w-12 text-slate-300" />
-          <h3 className="text-base font-semibold text-slate-700">No Duas Found</h3>
+          <h3 className="text-base font-semibold text-slate-700">
+            No Duas Found
+          </h3>
           <p className="text-xs text-slate-400 max-w-md">
-            Click &quot;Sync Hisn al-Muslim (EN)&quot; to ingest the standard authentic collection from repository.
+            Click &quot;Sync Hisn al-Muslim (EN)&quot; to ingest the standard
+            authentic collection from repository.
           </p>
           <Button
             onClick={handleSyncHisn}
@@ -322,11 +352,19 @@ export default function DuasPage() {
       ) : (
         <div className="space-y-4">
           {duas.map((dua) => (
-            <Card key={dua._id} className="rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <Card
+              key={dua._id}
+              className="rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+            >
               <CardHeader className="pb-3 border-b border-slate-50 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="font-bold text-slate-800 text-sm">{dua.title}</span>
-                  <Badge variant="outline" className="text-xs font-semibold text-emerald-800 bg-emerald-50 border-emerald-200">
+                  <span className="font-bold text-slate-800 text-sm">
+                    {dua.title}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-semibold text-emerald-800 bg-emerald-50 border-emerald-200"
+                  >
                     {dua.category}
                   </Badge>
                   {dua.repeat && dua.repeat > 1 && (
@@ -387,26 +425,32 @@ export default function DuasPage() {
       )}
 
       {/* Add / Edit Dua Modal */}
-      <Dialog open={isAddOpen || isEditOpen} onOpenChange={(open) => {
-        if (!open) {
-          setIsAddOpen(false);
-          setIsEditOpen(false);
-        }
-      }}>
+      <Dialog
+        open={isAddOpen || isEditOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddOpen(false);
+            setIsEditOpen(false);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               {currentDua ? "Edit Dua" : "Add New Dua"}
             </DialogTitle>
             <DialogDescription>
-              Supplications will be included in the next Dua offline pack for [{selectedLang}].
+              Supplications will be included in the next Dua offline pack for [
+              {selectedLang}].
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Title</label>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  Title
+                </label>
                 <Input
                   type="text"
                   placeholder="e.g. When waking up"
@@ -416,7 +460,9 @@ export default function DuasPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Category</label>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  Category
+                </label>
                 <Input
                   type="text"
                   placeholder="e.g. Morning & Evening"
@@ -428,7 +474,9 @@ export default function DuasPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Arabic Text</label>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Arabic Text
+              </label>
               <textarea
                 rows={3}
                 dir="rtl"
@@ -440,7 +488,9 @@ export default function DuasPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Transliteration (Optional)</label>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Transliteration (Optional)
+              </label>
               <Input
                 type="text"
                 placeholder="Alhamdu lillahil-lathee ahyana..."
@@ -451,7 +501,9 @@ export default function DuasPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Translation ({selectedLang})</label>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Translation ({selectedLang})
+              </label>
               <textarea
                 rows={3}
                 placeholder="Enter translated meaning..."
@@ -463,7 +515,9 @@ export default function DuasPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Repeat Count</label>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  Repeat Count
+                </label>
                 <Input
                   type="number"
                   min={1}
@@ -473,7 +527,9 @@ export default function DuasPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Audio URL (Optional)</label>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  Audio URL (Optional)
+                </label>
                 <Input
                   type="text"
                   placeholder="https://..."

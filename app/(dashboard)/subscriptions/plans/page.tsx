@@ -1,20 +1,20 @@
 "use client";
+import {QueryError} from "@/components/shared/query-error";
+import { getErrorMessage } from "@/lib/errors";
 
-import { useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -22,15 +22,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
-  useGetAdminPlansQuery,
   useCreatePlanMutation,
-  useUpdatePlanMutation,
   useDeletePlanMutation,
+  useGetAdminPlansQuery,
+  useUpdatePlanMutation,
   type SubscriptionPlan,
 } from "@/redux/features/subscription/subscriptionApi";
-import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 type PlanForm = {
   name: string;
@@ -51,7 +53,7 @@ const emptyForm: PlanForm = {
 };
 
 export default function SubscriptionPlansPage() {
-  const { data, isLoading } = useGetAdminPlansQuery();
+  const { data, isLoading, isError, refetch } = useGetAdminPlansQuery();
   const [createPlan, { isLoading: creating }] = useCreatePlanMutation();
   const [updatePlan, { isLoading: updating }] = useUpdatePlanMutation();
   const [deletePlan, { isLoading: deleting }] = useDeletePlanMutation();
@@ -59,9 +61,7 @@ export default function SubscriptionPlansPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PlanForm>(emptyForm);
 
-  const plans: SubscriptionPlan[] = Array.isArray(data?.data)
-    ? data.data
-    : data?.data?.result || data?.data?.data || [];
+  const plans: SubscriptionPlan[] = data?.data || [];
 
   const openCreate = () => {
     setForm(emptyForm);
@@ -101,7 +101,7 @@ export default function SubscriptionPlansPage() {
       setOpen(false);
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Failed to create plan");
+      toast.error(getErrorMessage(err, "Failed to create plan"));
     }
   };
 
@@ -114,7 +114,7 @@ export default function SubscriptionPlansPage() {
       toast.success("Plan updated");
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Failed to update plan");
+      toast.error(getErrorMessage(err, "Failed to update plan"));
     }
   };
 
@@ -125,10 +125,11 @@ export default function SubscriptionPlansPage() {
       toast.success("Plan deleted");
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Failed to delete plan");
+      toast.error(getErrorMessage(err, "Failed to delete plan"));
     }
   };
 
+  if (isError) return <QueryError retry={refetch}/>;
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">

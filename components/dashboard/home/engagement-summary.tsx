@@ -41,7 +41,7 @@ export default function EngagementSummary({
               {totalVerseViews.toLocaleString()}
             </div>
             <div className="text-xs text-slate-500 uppercase tracking-widest">
-              Total Verse Views
+              Saved Reading Positions
             </div>
           </div>
         </div>

@@ -1,14 +1,15 @@
 "use client";
+import { getErrorMessage } from "@/lib/errors";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
 import { useResetPasswordMutation } from "@/redux/features/auth/authApi";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 type ResetPasswordValues = {
   password: string;
@@ -22,9 +23,10 @@ export default function ResetPasswordForm() {
   const [resetPassword, { isLoading }] = useResetPasswordMutation();
 
   const {
+    formState: { errors },
     register,
     handleSubmit,
-    watch,
+    getValues,
   } = useForm<ResetPasswordValues>();
 
   const onSubmit = async (data: ResetPasswordValues) => {
@@ -51,7 +53,7 @@ export default function ResetPasswordForm() {
       }
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Something went wrong");
+      toast.error(getErrorMessage(err, "Something went wrong"));
     }
   };
 
@@ -63,6 +65,11 @@ export default function ResetPasswordForm() {
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+        {Object.entries(errors).map(([name, error]) => (
+          <p role="alert" className="text-sm text-red-600" key={name}>
+            {error.message}
+          </p>
+        ))}
         <div className="space-y-2">
           <Label className="text-base font-medium text-gray-700">
             New password
@@ -102,7 +109,7 @@ export default function ResetPasswordForm() {
               {...register("confirmPassword", {
                 required: "Please confirm your password",
                 validate: (value) =>
-                  value === watch("password") || "Passwords do not match",
+                  value === getValues("password") || "Passwords do not match",
               })}
             />
             <button

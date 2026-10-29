@@ -1,4 +1,7 @@
 "use client";
+import { Pagination } from "@/components/shared/pagination";
+import { getErrorMessage } from "@/lib/errors";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +21,7 @@ import {
   type AppUser,
 } from "@/redux/features/user/userApi";
 import { MoreVertical, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 function mapStatusBadge(status?: string) {
@@ -49,11 +52,17 @@ function formatDate(value?: string) {
 
 export default function AllUsersTable() {
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+  const [page, setPage] = useState(1);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
-  const { data, isLoading, isError } = useGetUsersQuery({
-    page: 1,
+  const {
+    currentData: data,
+    isLoading,
+    isError,
+    isFetching,
+  } = useGetUsersQuery({
+    page,
     limit: 50,
     searchTerm: debouncedSearch || undefined,
   });
@@ -62,19 +71,11 @@ export default function AllUsersTable() {
 
   const users: AppUser[] = data?.data || [];
 
-  const filteredUsers = useMemo(() => {
-    if (!search.trim()) return users;
-    const q = search.toLowerCase();
-    return users.filter(
-      (user) =>
-        user.name?.toLowerCase().includes(q) ||
-        user.email?.toLowerCase().includes(q),
-    );
-  }, [users, search]);
+  const filteredUsers = users;
 
   const handleSearchSubmit = (value: string) => {
     setSearch(value);
-    setDebouncedSearch(value.trim());
+    setPage(1);
   };
 
   const handleStatusChange = async (userId: string, status: string) => {
@@ -84,7 +85,7 @@ export default function AllUsersTable() {
       setMenuOpenId(null);
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Failed to update status");
+      toast.error(getErrorMessage(err, "Failed to update status"));
     }
   };
 
@@ -173,9 +174,7 @@ export default function AllUsersTable() {
                         <button
                           type="button"
                           className="block w-full px-3 py-2 text-sm hover:bg-slate-50"
-                          onClick={() =>
-                            handleStatusChange(user._id, "active")
-                          }
+                          onClick={() => handleStatusChange(user._id, "active")}
                         >
                           Set Active
                         </button>
@@ -206,6 +205,12 @@ export default function AllUsersTable() {
           </Table>
         )}
       </CardContent>
+      <Pagination
+        page={page}
+        meta={data?.meta}
+        onChange={setPage}
+        disabled={isFetching}
+      />
     </Card>
   );
 }

@@ -1,15 +1,16 @@
 "use client";
+import {QueryError} from "@/components/shared/query-error";
 
-import React, { useState } from "react";
 import {
-  useGetSheikhContentsQuery,
   useCreateSheikhContentMutation,
   useDeleteSheikhContentMutation,
+  useGetSheikhContentsQuery,
 } from "@/redux/features/sheikhApi";
-import { Trash2, Plus, Video, Link2, ExternalLink } from "lucide-react";
+import { ExternalLink, Link2, Plus, Trash2, Video } from "lucide-react";
+import React, { useState } from "react";
 
 export default function SheikhMediaPage() {
-  const { data: sheikhRes, isLoading } = useGetSheikhContentsQuery({});
+  const { data: sheikhRes, isError, refetch, isLoading } = useGetSheikhContentsQuery({});
   const sheikhContents = sheikhRes?.data || [];
   const [createSheikhContent] = useCreateSheikhContentMutation();
   const [deleteSheikhContent] = useDeleteSheikhContentMutation();
@@ -34,7 +35,7 @@ export default function SheikhMediaPage() {
       setTitle("");
       setUrl("");
       alert("Media content added successfully!");
-    } catch (err) {
+    } catch {
       alert("Failed to add media content. Make sure the YouTube URL is valid.");
     }
   };
@@ -43,12 +44,13 @@ export default function SheikhMediaPage() {
     if (confirm("Are you sure you want to delete this media content?")) {
       try {
         await deleteSheikhContent(id).unwrap();
-      } catch (err) {
+      } catch {
         alert("Failed to delete media content.");
       }
     }
   };
 
+  if (isError) return <QueryError retry={refetch}/>;
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div>
@@ -57,8 +59,8 @@ export default function SheikhMediaPage() {
         </h1>
         <p className="text-sm text-slate-500">
           Add a YouTube watch or playlist URL. The API stores youtubeId for the
-          in-app player. Speaker name must match the app query
-          (Abu Alia, Abul Baraa, Pierre Vogel, One Message Foundation, Alim Hamza).
+          in-app player. Speaker name must match the app query (Abu Alia, Abul
+          Baraa, Pierre Vogel, One Message Foundation, Alim Hamza).
         </p>
       </div>
 
@@ -71,7 +73,9 @@ export default function SheikhMediaPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600">Speaker / Scholar</label>
+              <label className="text-xs font-semibold text-slate-600">
+                Speaker / Scholar
+              </label>
               <select
                 value={speakerName}
                 onChange={(e) => setSpeakerName(e.target.value)}
@@ -80,13 +84,17 @@ export default function SheikhMediaPage() {
                 <option value="Abu Alia">Sheikh Abu Alia</option>
                 <option value="Abul Baraa">Sheikh Abul Baraa</option>
                 <option value="Pierre Vogel">Pierre Vogel</option>
-                <option value="One Message Foundation">One Message Foundation</option>
+                <option value="One Message Foundation">
+                  One Message Foundation
+                </option>
                 <option value="Alim Hamza">Alim Hamza</option>
               </select>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600">Content Type</label>
+              <label className="text-xs font-semibold text-slate-600">
+                Content Type
+              </label>
               <div className="flex gap-4 pt-1">
                 <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                   <input
@@ -114,7 +122,9 @@ export default function SheikhMediaPage() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600">Title</label>
+              <label className="text-xs font-semibold text-slate-600">
+                Title
+              </label>
               <input
                 type="text"
                 required
@@ -126,7 +136,9 @@ export default function SheikhMediaPage() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600">YouTube Video/Playlist URL</label>
+              <label className="text-xs font-semibold text-slate-600">
+                YouTube Video/Playlist URL
+              </label>
               <input
                 type="url"
                 required
@@ -160,28 +172,43 @@ export default function SheikhMediaPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400">Loading media contents...</td>
+                  <td colSpan={4} className="p-8 text-center text-slate-400">
+                    Loading media contents...
+                  </td>
                 </tr>
               ) : sheikhContents?.length ? (
-                sheikhContents.map((item: any) => (
-                  <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm">
-                    <td className="p-4 font-semibold text-slate-900">{item.speakerName}</td>
+                sheikhContents.map((item) => (
+                  <tr
+                    key={item._id}
+                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm"
+                  >
+                    <td className="p-4 font-semibold text-slate-900">
+                      {item.speakerName}
+                    </td>
                     <td className="p-4 text-slate-500">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium uppercase ${item.type === "video" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
-                        }`}>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium uppercase ${
+                          item.type === "video"
+                            ? "bg-blue-50 text-blue-700"
+                            : "bg-purple-50 text-purple-700"
+                        }`}
+                      >
                         {item.type === "video" ? "Video" : "Audio"}
                       </span>
                     </td>
                     <td className="p-4 max-w-xs">
                       <div className="flex flex-col">
-                        <span className="font-medium text-slate-900 truncate">{item.title}</span>
+                        <span className="font-medium text-slate-900 truncate">
+                          {item.title}
+                        </span>
                         <a
                           href={item.url}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs text-emerald-800 hover:underline flex items-center gap-1 mt-1"
                         >
-                          <Link2 size={12} /> View Link <ExternalLink size={10} />
+                          <Link2 size={12} /> View Link{" "}
+                          <ExternalLink size={10} />
                         </a>
                       </div>
                     </td>
@@ -197,7 +224,9 @@ export default function SheikhMediaPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400">No sheikh media content found.</td>
+                  <td colSpan={4} className="p-8 text-center text-slate-400">
+                    No sheikh media content found.
+                  </td>
                 </tr>
               )}
             </tbody>

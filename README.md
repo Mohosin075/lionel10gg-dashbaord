@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Quran International Dashboard
 
-## Getting Started
+Requires Node.js 22+ and the Quran International backend on port 5005.
 
-First, run the development server:
+## Local development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Run npm ci.
+2. Copy .env.example to .env.local and set NEXT_PUBLIC_BASEURL to the backend origin (without /api/v1).
+3. Run npm run dev and sign in with a backend admin account.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The browser connects directly to the configured backend. For another device on the same LAN, use the backend computer's LAN IP and allow the dashboard origin in backend CORS. NEXT_PUBLIC_BASEURL is included at build time; rebuild when it changes.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- npm run lint
+- npm run typecheck
+- npm test
+- npm run build
+- npm run test:e2e (install Chromium with npx playwright install chromium, or set PLAYWRIGHT_CHANNEL=msedge to use installed Edge).
 
-## Learn More
+Browser tests start the production app on port 3105 and mock API responses. They do not send real notifications, alter client data, or start paid translation jobs.
 
-To learn more about Next.js, take a look at the following resources:
+## Data and security
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Article HTML is sanitized before preview. Login redirects allow local paths only. Expired access tokens share one refresh request; rejected refreshes clear the session and API cache.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Content lists use pagination, server search, and exact language filters. Book previews/editors retrieve the complete book before displaying it. The legacy /premium-benefits URL uses the maintained subscription-benefits page.
 
-## Deploy on Vercel
+Reports support 7 days, 30 days, and the current month in UTC. Registrations/profile updates are shown separately from session activity. Installs, platform breakdowns, and session durations show unavailable until genuine telemetry is collected. Bookmarks, highlights, saved reading positions, and published content counts are cumulative.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Restart/rebuild the backend too: this repair changes report responses and adds strictLang/searchTerm/source filters to Knowledge Library lists. Mobile language fallback behavior is retained for requests without strictLang=true.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The small local shadcn stylesheet retains its MIT license in licenses/shadcn-LICENSE.md; the CLI and its runtime dependency tree are not needed to run this dashboard.

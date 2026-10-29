@@ -24,7 +24,9 @@ export default function MostSearchedVerses({ data = [] }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Most Searched Verses</CardTitle>
+        <CardTitle className="text-base">
+          Saved Reading Positions by Surah
+        </CardTitle>
       </CardHeader>
       <CardContent className="h-[250px]">
         <ResponsiveContainer width="100%" height="100%">

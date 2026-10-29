@@ -18,7 +18,16 @@ export interface IDua {
 export const duaApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getDuas: builder.query<
-      { success: boolean; data: IDua[]; meta: { total: number; page: number; limit: number; totalPages: number } },
+      {
+        success: boolean;
+        data: IDua[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      },
       { lang?: string; category?: string; page?: number; limit?: number }
     >({
       query: (params) => ({
@@ -27,20 +36,26 @@ export const duaApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Dua"],
     }),
-    getDuaCategories: builder.query<{ success: boolean; data: string[] }, { lang?: string } | void>({
+    getDuaCategories: builder.query<
+      { success: boolean; data: string[] },
+      { lang?: string } | void
+    >({
       query: (params) => ({
         url: "/dua/categories",
         params: params || {},
       }),
       providesTags: ["Dua"],
     }),
-    createDua: builder.mutation<{ success: boolean; data: IDua; message: string }, Partial<IDua>>({
+    createDua: builder.mutation<
+      { success: boolean; data: IDua; message: string },
+      Partial<IDua>
+    >({
       query: (body) => ({
         url: "/dua",
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Dua"],
+      invalidatesTags: ["Dua", "OfflinePack", "Dashboard"],
     }),
     updateDua: builder.mutation<
       { success: boolean; data: IDua; message: string },
@@ -51,21 +66,28 @@ export const duaApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ["Dua"],
+      invalidatesTags: ["Dua", "OfflinePack", "Dashboard"],
     }),
     deleteDua: builder.mutation<{ success: boolean; message: string }, string>({
       query: (id) => ({
         url: `/dua/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Dua"],
+      invalidatesTags: ["Dua", "OfflinePack", "Dashboard"],
     }),
-    syncEnglishDuas: builder.mutation<{ success: boolean; data: { createdCount: number; updatedCount: number }; message: string }, void>({
+    syncEnglishDuas: builder.mutation<
+      {
+        success: boolean;
+        data: { createdCount: number; updatedCount: number };
+        message: string;
+      },
+      void
+    >({
       query: () => ({
         url: "/dua/sync",
         method: "POST",
       }),
-      invalidatesTags: ["Dua"],
+      invalidatesTags: ["Dua", "OfflinePack", "Dashboard"],
     }),
   }),
 });

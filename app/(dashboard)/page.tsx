@@ -1,6 +1,6 @@
 "use client";
+import {QueryError} from "@/components/shared/query-error";
 
-import Link from "next/link";
 import BookmarkedVerses from "@/components/dashboard/home/bookmarked-verses";
 import EngagementSummary from "@/components/dashboard/home/engagement-summary";
 import MonthlyActiveUsers from "@/components/dashboard/home/monthly-active-users";
@@ -11,20 +11,20 @@ import { useGetAnalyticsQuery } from "@/redux/features/dashboard/dashboardApi";
 import { useGetSubscriptionAnalyticsQuery } from "@/redux/features/subscription/subscriptionApi";
 import {
   Activity,
+  ArrowUpRight,
+  BookText,
   Crown,
   Download,
+  DownloadCloud,
+  Heart,
+  Languages,
   MousePointerClick,
   Users,
-  DownloadCloud,
-  Languages,
-  BookText,
-  Heart,
-  ArrowUpRight,
-  Settings,
 } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
-  const { data: analyticsRes, isLoading } = useGetAnalyticsQuery();
+  const { data: analyticsRes, isError, refetch, isLoading } = useGetAnalyticsQuery();
   const { data: subAnalyticsRes } = useGetSubscriptionAnalyticsQuery();
 
   const analytics = analyticsRes?.data;
@@ -68,11 +68,12 @@ export default function DashboardPage() {
     },
   ];
 
+  if (isError) return <QueryError retry={refetch}/>;
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <PageHeader
         title="Quran International Command Center"
-        description="Real-time telemetry, offline pack publishing, 109-language AI translation, and subscriber metrics"
+        description="Offline pack publishing, translation management, registrations, and subscriber metrics"
       />
 
       {/* Quick Action & Content Sync Banner */}
@@ -91,7 +92,9 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold block">
               {analytics?.totalOfflinePacks?.toLocaleString?.() ?? 0}
             </span>
-            <span className="text-xs text-emerald-200 font-medium">Offline Packs Published</span>
+            <span className="text-xs text-emerald-200 font-medium">
+              Offline Packs Published
+            </span>
           </div>
         </Link>
 
@@ -106,11 +109,11 @@ export default function DashboardPage() {
             <ArrowUpRight className="h-4 w-4 text-blue-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
           <div className="mt-4">
-            <span className="text-2xl font-bold block">
-              109 Lng
-            </span>
+            <span className="text-2xl font-bold block">109 Lng</span>
             <span className="text-xs text-blue-200 font-medium">
-              {analytics?.activeBatchJobs ? `${analytics.activeBatchJobs} jobs active` : "Batch AI Translations"}
+              {analytics?.activeBatchJobs
+                ? `${analytics.activeBatchJobs} jobs active`
+                : "Batch AI Translations"}
             </span>
           </div>
         </Link>
@@ -129,7 +132,9 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold block">
               {analytics?.totalHadiths?.toLocaleString?.() ?? "8 Books"}
             </span>
-            <span className="text-xs text-amber-200 font-medium">Hadiths in Database</span>
+            <span className="text-xs text-amber-200 font-medium">
+              Hadiths in Database
+            </span>
           </div>
         </Link>
 
@@ -147,7 +152,9 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold block">
               {analytics?.totalDuas?.toLocaleString?.() ?? "Hisn al-Muslim"}
             </span>
-            <span className="text-xs text-purple-200 font-medium">Supplications &amp; Duas</span>
+            <span className="text-xs text-purple-200 font-medium">
+              Supplications &amp; Duas
+            </span>
           </div>
         </Link>
       </div>

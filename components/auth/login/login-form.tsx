@@ -1,15 +1,19 @@
 "use client";
+import { persistor } from "@/redux/store";
+import { getErrorMessage } from "@/lib/errors";
+import { safeRedirect } from "@/lib/navigation";
+import { baseApi } from "@/redux/features/baseApi";
 
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLoginUserMutation } from "@/redux/features/auth/authApi";
-import { useRouter, useSearchParams } from "next/navigation";
 import { setUser } from "@/redux/slice/userSlice";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm, useWatch } from "react-hook-form";
 import { useDispatch } from "react-redux";
+import { toast } from "sonner";
 
 type FormValues = {
   email: string;
@@ -24,9 +28,10 @@ export default function LoginForm() {
   const [loginUser, { isLoading }] = useLoginUserMutation();
 
   const {
+    formState: { errors },
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
   } = useForm<FormValues>({
     defaultValues: {
@@ -35,6 +40,8 @@ export default function LoginForm() {
       remember: true,
     },
   });
+
+  const useWatchRemember = useWatch({ control, name: "remember" });
 
   const onSubmit = async (data: FormValues) => {
     try {
@@ -47,15 +54,17 @@ export default function LoginForm() {
       if (res.success) {
         toast.success(res.message || "Login successful");
         // Full API response so userSlice can read payload.data
-        dispatch(setUser(res));
-        const redirect = searchParams.get("redirect") || "/";
-        router.push(redirect);
+        dispatch(baseApi.util.resetApiState());
+        dispatch(setUser({ data: { ...res.data, rememberMe: data.remember } }));
+        const redirect = safeRedirect(searchParams.get("redirect"));
+        await persistor.flush();
+        window.location.replace(redirect);
       } else {
         toast.error(res.message || "Login failed");
       }
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Something went wrong");
+      toast.error(getErrorMessage(err, "Something went wrong"));
     }
   };
 
@@ -67,6 +76,11 @@ export default function LoginForm() {
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-5">
+        {Object.entries(errors).map(([name, error]) => (
+          <p role="alert" className="text-sm text-red-600" key={name}>
+            {error.message}
+          </p>
+        ))}
         <div className="space-y-2">
           <Label className="text-base font-medium text-gray-700">
             Email address
@@ -95,7 +109,7 @@ export default function LoginForm() {
           <div className="flex items-center gap-2">
             <Checkbox
               id="remember"
-              checked={watch("remember")}
+              checked={useWatchRemember}
               onCheckedChange={(value) => setValue("remember", !!value)}
             />
             <Label htmlFor="remember" className="text-base text-gray-600">

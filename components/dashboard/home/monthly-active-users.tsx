@@ -41,7 +41,7 @@ export default function MonthlyActiveUsers({
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Monthly Active Users</CardTitle>
+          <CardTitle className="text-base">Monthly Registrations</CardTitle>
         </CardHeader>
         <CardContent className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -73,7 +73,7 @@ export default function MonthlyActiveUsers({
                 strokeWidth={2}
                 dot={{ r: 4, fill: "#fff", stroke: "#22c55e" }}
                 activeDot={{ r: 6 }}
-                name="Active Users"
+                name="New registrations"
               />
               <Legend iconType="circle" wrapperStyle={{ fontSize: "12px" }} />
             </LineChart>
@@ -83,7 +83,9 @@ export default function MonthlyActiveUsers({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Most Viewed Translations</CardTitle>
+          <CardTitle className="text-base">
+            Bookmarked Translation Editions
+          </CardTitle>
         </CardHeader>
         <CardContent className="h-[250px] flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">

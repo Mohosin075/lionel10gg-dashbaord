@@ -1,108 +1,131 @@
+import type {
+  ApiResponse,
+  KnowledgeArticle,
+  KnowledgeBook,
+  KnowledgeFatwa,
+} from "@/lib/api-types";
 import { baseApi } from "./baseApi";
-
+interface Filters {
+  lang: string;
+  page?: number;
+  limit?: number;
+  category?: string;
+  searchTerm?: string;
+  source?: string;
+  strictLang?: boolean;
+}
 export const knowledgeApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getArticles: builder.query({
-      query: (params) => ({
-        url: "/knowledge-library",
-        params,
-      }),
+    getArticles: builder.query<ApiResponse<KnowledgeArticle[]>, Filters>({
+      query: (params) => ({ url: "/knowledge-library", params }),
       providesTags: ["Knowledge"],
     }),
-    createArticle: builder.mutation({
-      query: (data) => ({
-        url: "/knowledge-library",
-        method: "POST",
-        body: data,
-      }),
-      invalidatesTags: ["Knowledge"],
+    getArticle: builder.query<ApiResponse<KnowledgeArticle>, string>({
+      query: (id) => "/knowledge-library/" + id,
+      providesTags: ["Knowledge"],
     }),
-    updateArticle: builder.mutation({
-      query: ({ id, ...data }) => ({
-        url: `/knowledge-library/${id}`,
+    createArticle: builder.mutation<
+      ApiResponse<KnowledgeArticle>,
+      Partial<KnowledgeArticle>
+    >({
+      query: (body) => ({ url: "/knowledge-library", method: "POST", body }),
+      invalidatesTags: ["Knowledge", "OfflinePack"],
+    }),
+    updateArticle: builder.mutation<
+      ApiResponse<KnowledgeArticle>,
+      { id: string } & Partial<KnowledgeArticle>
+    >({
+      query: ({ id, ...body }) => ({
+        url: "/knowledge-library/" + id,
         method: "PATCH",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Knowledge"],
+      invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
-    deleteArticle: builder.mutation({
-      query: (id) => ({
-        url: `/knowledge-library/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["Knowledge"],
+    deleteArticle: builder.mutation<ApiResponse<KnowledgeArticle>, string>({
+      query: (id) => ({ url: "/knowledge-library/" + id, method: "DELETE" }),
+      invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
-
-    getBooks: builder.query({
-      query: (params) => ({
+    getBooks: builder.query<ApiResponse<KnowledgeBook[]>, Filters>({
+      query: (params) => ({ url: "/knowledge-library/books", params }),
+      providesTags: ["Knowledge"],
+    }),
+    getBook: builder.query<ApiResponse<KnowledgeBook>, string>({
+      query: (id) => "/knowledge-library/books/" + id,
+      providesTags: ["Knowledge"],
+    }),
+    createBook: builder.mutation<
+      ApiResponse<KnowledgeBook>,
+      Partial<KnowledgeBook>
+    >({
+      query: (body) => ({
         url: "/knowledge-library/books",
-        params,
-      }),
-      providesTags: ["Knowledge"],
-    }),
-    createBook: builder.mutation({
-      query: (data) => ({
-        url: "/knowledge-library/books",
         method: "POST",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Knowledge"],
+      invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
-    updateBook: builder.mutation({
-      query: ({ id, ...data }) => ({
-        url: `/knowledge-library/books/${id}`,
+    updateBook: builder.mutation<
+      ApiResponse<KnowledgeBook>,
+      { id: string } & Partial<KnowledgeBook>
+    >({
+      query: ({ id, ...body }) => ({
+        url: "/knowledge-library/books/" + id,
         method: "PATCH",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Knowledge"],
+      invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
-    deleteBook: builder.mutation({
+    deleteBook: builder.mutation<ApiResponse<KnowledgeBook>, string>({
       query: (id) => ({
-        url: `/knowledge-library/books/${id}`,
+        url: "/knowledge-library/books/" + id,
         method: "DELETE",
       }),
-      invalidatesTags: ["Knowledge"],
+      invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
-
-    getFatwas: builder.query({
-      query: (params) => ({
-        url: "/knowledge-library/fatwas",
-        params,
-      }),
+    getFatwas: builder.query<ApiResponse<KnowledgeFatwa[]>, Filters>({
+      query: (params) => ({ url: "/knowledge-library/fatwas", params }),
       providesTags: ["Knowledge"],
     }),
-    createFatwa: builder.mutation({
-      query: (data) => ({
+    createFatwa: builder.mutation<
+      ApiResponse<KnowledgeFatwa>,
+      Partial<KnowledgeFatwa>
+    >({
+      query: (body) => ({
         url: "/knowledge-library/fatwas",
         method: "POST",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Knowledge"],
+      invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
-    updateFatwa: builder.mutation({
-      query: ({ id, ...data }) => ({
-        url: `/knowledge-library/fatwas/${id}`,
+    updateFatwa: builder.mutation<
+      ApiResponse<KnowledgeFatwa>,
+      { id: string } & Partial<KnowledgeFatwa>
+    >({
+      query: ({ id, ...body }) => ({
+        url: "/knowledge-library/fatwas/" + id,
         method: "PATCH",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Knowledge"],
+      invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
-    deleteFatwa: builder.mutation({
+    deleteFatwa: builder.mutation<ApiResponse<KnowledgeFatwa>, string>({
       query: (id) => ({
-        url: `/knowledge-library/fatwas/${id}`,
+        url: "/knowledge-library/fatwas/" + id,
         method: "DELETE",
       }),
-      invalidatesTags: ["Knowledge"],
+      invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
   }),
 });
-
 export const {
   useGetArticlesQuery,
+  useGetArticleQuery,
   useCreateArticleMutation,
   useUpdateArticleMutation,
   useDeleteArticleMutation,
   useGetBooksQuery,
+  useLazyGetBookQuery,
   useCreateBookMutation,
   useUpdateBookMutation,
   useDeleteBookMutation,

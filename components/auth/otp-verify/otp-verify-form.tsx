@@ -1,13 +1,14 @@
 "use client";
+import { getErrorMessage } from "@/lib/errors";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useEffect, useRef, useState } from "react";
 import {
-  useVerifyOtpMutation,
   useResendOtpMutation,
+  useVerifyOtpMutation,
 } from "@/redux/features/auth/authApi";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function OtpVerify() {
@@ -90,7 +91,7 @@ export default function OtpVerify() {
       }
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Something went wrong");
+      toast.error(getErrorMessage(err, "Something went wrong"));
     }
   };
 
@@ -111,7 +112,7 @@ export default function OtpVerify() {
       }
     } catch (error: unknown) {
       const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || "Something went wrong");
+      toast.error(getErrorMessage(err, "Something went wrong"));
     }
   };
 
@@ -156,7 +157,9 @@ export default function OtpVerify() {
           <p className="text-base text-gray-600">Resend in {countdown}s</p>
         ) : (
           <div className="flex items-center gap-1">
-            <p className="text-base text-gray-600">Don&apos;t receive any code?</p>
+            <p className="text-base text-gray-600">
+              Don&apos;t receive any code?
+            </p>
             <Button
               onClick={handleResend}
               disabled={isResending}
