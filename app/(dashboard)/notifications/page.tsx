@@ -25,6 +25,7 @@ export default function NotificationsPage() {
     useSendNotificationMutation();
   const { data: notifRes, isError, refetch } = useGetNotificationManagementQuery();
 
+  const [dispatch, setDispatch] = useState<{recorded:number;push:{configured:boolean;attempted:number;accepted:number;failed:number}} | null>(null);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [target, setTarget] = useState<"all" | "user">("all");
@@ -49,8 +50,11 @@ export default function NotificationsPage() {
         payload.userId = userId.trim();
       }
 
-      await sendNotification(payload).unwrap();
-      toast.success("Notification sent successfully");
+      const result = await sendNotification(payload).unwrap();
+      setDispatch(result.data);
+      if (!result.data.push.configured) toast.warning("Saved to inbox. Firebase push is not configured.");
+      else if (result.data.push.failed) toast.warning("Saved to inbox; some push requests failed.");
+      else toast.success("Saved to inbox. Push accepted for " + result.data.push.accepted + " devices.");
       setTitle("");
       setMessage("");
       setUserId("");
@@ -157,6 +161,7 @@ export default function NotificationsPage() {
               <p className="text-xs text-slate-500 mt-1">
                 Stored notification records
               </p>
+              {dispatch && <div className="mt-3 text-xs space-y-1"><p>Last request: {dispatch.recorded} inbox records</p><p>Push service: {dispatch.push.configured ? "Configured" : "Not configured"}</p><p>Devices attempted: {dispatch.push.attempted}; accepted: {dispatch.push.accepted}; failed: {dispatch.push.failed}</p><p>Accepted by Firebase does not confirm device delivery.</p></div>}
             </CardContent>
           </Card>
         </div>

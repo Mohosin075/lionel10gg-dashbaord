@@ -75,7 +75,7 @@ export default function SubscriptionPlansPage() {
       return;
     }
     if (Number.isNaN(price) || price < 0.99 || price > 200) {
-      toast.error("Price must be between €0.99 and €200.00");
+      toast.error("Price must be between 0.99 and 200.00 in the selected currency");
       return;
     }
     const features = form.featuresText

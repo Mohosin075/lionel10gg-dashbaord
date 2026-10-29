@@ -473,7 +473,7 @@ function AppConfigEditor({ initialConfig }: { initialConfig: IAppConfig }) {
                       Premium Paywall
                     </span>
                     <span className="text-[10px] text-slate-500">
-                      Stripe &amp; IAP paywall
+                      New premium purchases (existing access retained)
                     </span>
                   </div>
                   <Switch
@@ -485,7 +485,7 @@ function AppConfigEditor({ initialConfig }: { initialConfig: IAppConfig }) {
                 <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between">
                   <div>
                     <span className="text-xs font-semibold text-slate-800 block">
-                      Sheikh Audio
+                      Online Audio
                     </span>
                     <span className="text-[10px] text-slate-500">
                       Live streaming audio
@@ -503,11 +503,12 @@ function AppConfigEditor({ initialConfig }: { initialConfig: IAppConfig }) {
                       AI Islamic Chat
                     </span>
                     <span className="text-[10px] text-slate-500">
-                      Assistant feature
+                      Reserved: this mobile build has no AI chat screen
                     </span>
                   </div>
                   <Switch
                     checked={aiChatEnabled}
+                    disabled
                     onCheckedChange={setAiChatEnabled}
                   />
                 </div>
