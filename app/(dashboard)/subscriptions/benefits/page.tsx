@@ -36,12 +36,16 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type BenefitForm = {
+  defaultLanguage:string;
+  translations:Record<string,string>;
   serialNumber: string;
   text: string;
   isActive: boolean;
 };
 
 const emptyForm: BenefitForm = {
+  defaultLanguage:"en",
+  translations:{},
   serialNumber: "1",
   text: "",
   isActive: true,
@@ -56,6 +60,7 @@ export default function PremiumBenefitsPage() {
   const [deleteBenefit, { isLoading: deleting }] =
     useDeletePremiumBenefitMutation();
 
+  const [translationCode,setTranslationCode]=useState("bn");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PremiumBenefit | null>(null);
   const [form, setForm] = useState<BenefitForm>(emptyForm);
@@ -80,6 +85,8 @@ export default function PremiumBenefitsPage() {
     setForm({
       serialNumber: String(benefit.serialNumber),
       text: benefit.text,
+      defaultLanguage:benefit.defaultLanguage || "en",
+      translations:benefit.translations || {},
       isActive: benefit.isActive,
     });
     setOpen(true);
@@ -87,11 +94,12 @@ export default function PremiumBenefitsPage() {
 
   const handleSave = async () => {
     const serialNumber = Number(form.serialNumber);
+    if (!/^[a-z]{2,3}(-[a-zA-Z]+)?$/.test(form.defaultLanguage) || Object.keys(form.translations).some(code=>!/^[a-z]{2,3}(-[a-zA-Z]+)?$/.test(code))) {toast.error("Use a language code such as en, bn or de");return;}
     if (!form.text.trim()) {
       toast.error("Benefit text is required");
       return;
     }
-    if (Number.isNaN(serialNumber) || serialNumber < 1) {
+    if (!Number.isInteger(serialNumber) || serialNumber < 1) {
       toast.error("Serial number must be a positive number");
       return;
     }
@@ -102,6 +110,8 @@ export default function PremiumBenefitsPage() {
           id: editing._id,
           serialNumber,
           text: form.text.trim(),
+          defaultLanguage:form.defaultLanguage,
+          translations:form.translations,
           isActive: form.isActive,
         }).unwrap();
         toast.success("Benefit updated");
@@ -109,6 +119,8 @@ export default function PremiumBenefitsPage() {
         await createBenefit({
           serialNumber,
           text: form.text.trim(),
+          defaultLanguage:form.defaultLanguage,
+          translations:form.translations,
           isActive: form.isActive,
         }).unwrap();
         toast.success("Benefit created");
@@ -231,7 +243,7 @@ export default function PremiumBenefitsPage() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editing ? "Edit benefit" : "Add benefit"}
@@ -250,13 +262,15 @@ export default function PremiumBenefitsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Benefit text</Label>
+              <Label>Default benefit text</Label>
               <textarea
                 className="flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={form.text}
                 onChange={(e) => setForm({ ...form, text: e.target.value })}
               />
             </div>
+<div className="space-y-2"><Label>Default text language (en, bn, de...)</Label><Input value={form.defaultLanguage} onChange={e=>setForm({...form,defaultLanguage:e.target.value.trim()})}/></div>
+<div className="space-y-2"><Label>Translation language (en, bn, de...)</Label><Input value={translationCode} onChange={e=>setTranslationCode(e.target.value.trim())}/><Label>Translated benefit text</Label><textarea className="flex min-h-20 w-full rounded-md border border-input p-3 text-sm" value={form.translations[translationCode] || ""} onChange={e=>{const translations={...form.translations};if(e.target.value.trim()) translations[translationCode]=e.target.value;else delete translations[translationCode];setForm({...form,translations});}}/></div>
             <div className="flex items-center gap-2">
               <Switch
                 checked={form.isActive}

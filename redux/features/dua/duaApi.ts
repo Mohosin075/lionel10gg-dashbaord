@@ -32,7 +32,7 @@ export const duaApi = baseApi.injectEndpoints({
     >({
       query: (params) => ({
         url: "/dua",
-        params,
+        params: { ...params, includeUnavailable: true },
       }),
       providesTags: ["Dua"],
     }),

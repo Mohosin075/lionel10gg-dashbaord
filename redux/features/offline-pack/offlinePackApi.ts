@@ -41,6 +41,10 @@ export interface IBatchJob {
 
 export const offlinePackApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getAvailableContentLanguages: builder.query<{ success: boolean; data: { availableCodes: string[] } }, void>({
+      query: () => '/offline-pack/available-languages',
+      providesTags: ['OfflinePack', 'BatchTranslation'],
+    }),
     getPacks: builder.query<{ success: boolean; data: IOfflinePack[] }, void>({
       query: () => "/offline-pack/list",
       providesTags: ["OfflinePack"],
@@ -137,6 +141,7 @@ export const offlinePackApi = baseApi.injectEndpoints({
 
 export const {
   useGetPacksQuery,
+  useGetAvailableContentLanguagesQuery,
   useGeneratePackMutation,
   useGetBatchJobsQuery,
   useStartBatchTranslationMutation,

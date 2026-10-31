@@ -242,7 +242,7 @@ export default function DuasPage() {
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Language:
             </span>
-            <Select value={selectedLang} onValueChange={setSelectedLang}>
+            <Select value={selectedLang} onValueChange={(value) => { setSelectedLang(value); setPage(1); setSelectedCategory("all"); }}>
               <SelectTrigger className="w-36 h-8 text-xs rounded-lg">
                 <SelectValue />
               </SelectTrigger>

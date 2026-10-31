@@ -57,7 +57,7 @@ export const hadithApi = baseApi.injectEndpoints({
     >({
       query: (params) => ({
         url: "/hadith",
-        params,
+        params: { ...params, includeUnavailable: true },
       }),
       providesTags: ["Hadith"],
     }),

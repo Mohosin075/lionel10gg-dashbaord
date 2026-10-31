@@ -17,6 +17,8 @@ export type SubscriptionPlan = {
 };
 
 export type PremiumBenefit = {
+  defaultLanguage?: string;
+  translations?: Record<string,string>;
   _id: string;
   serialNumber: number;
   text: string;
@@ -77,6 +79,8 @@ const subscriptionApi = baseApi.injectEndpoints({
       query: (body: {
         serialNumber: number;
         text: string;
+        defaultLanguage?: string;
+        translations?: Record<string,string>;
         isActive?: boolean;
       }) => ({
         url: "/subscription/admin/premium-benefits",
@@ -94,6 +98,8 @@ const subscriptionApi = baseApi.injectEndpoints({
         id: string;
         serialNumber?: number;
         text?: string;
+        defaultLanguage?: string;
+        translations?: Record<string,string>;
         isActive?: boolean;
       }) => ({
         url: `/subscription/admin/premium-benefits/${id}`,

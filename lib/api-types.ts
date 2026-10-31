@@ -27,6 +27,7 @@ export interface KnowledgeArticle {
   updatedAt?: string;
 }
 export interface KnowledgeBook {
+  isContentAvailable?: boolean;
   _id: string;
   bookId: string;
   title: string;

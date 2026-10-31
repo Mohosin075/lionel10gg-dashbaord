@@ -7,6 +7,7 @@ import type {
 import { baseApi } from "./baseApi";
 interface Filters {
   lang: string;
+  includeUnavailable?: boolean;
   page?: number;
   limit?: number;
   category?: string;
@@ -17,7 +18,7 @@ interface Filters {
 export const knowledgeApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getArticles: builder.query<ApiResponse<KnowledgeArticle[]>, Filters>({
-      query: (params) => ({ url: "/knowledge-library", params }),
+      query: (params) => ({ url: "/knowledge-library", params: { ...params, includeUnavailable: true } }),
       providesTags: ["Knowledge"],
     }),
     getArticle: builder.query<ApiResponse<KnowledgeArticle>, string>({
@@ -47,7 +48,7 @@ export const knowledgeApi = baseApi.injectEndpoints({
       invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
     getBooks: builder.query<ApiResponse<KnowledgeBook[]>, Filters>({
-      query: (params) => ({ url: "/knowledge-library/books", params }),
+      query: (params) => ({ url: "/knowledge-library/books", params: { ...params, includeUnavailable: true } }),
       providesTags: ["Knowledge"],
     }),
     getBook: builder.query<ApiResponse<KnowledgeBook>, string>({
@@ -84,7 +85,7 @@ export const knowledgeApi = baseApi.injectEndpoints({
       invalidatesTags: ["Knowledge", "OfflinePack"],
     }),
     getFatwas: builder.query<ApiResponse<KnowledgeFatwa[]>, Filters>({
-      query: (params) => ({ url: "/knowledge-library/fatwas", params }),
+      query: (params) => ({ url: "/knowledge-library/fatwas", params: { ...params, includeUnavailable: true } }),
       providesTags: ["Knowledge"],
     }),
     createFatwa: builder.mutation<

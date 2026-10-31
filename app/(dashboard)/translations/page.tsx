@@ -34,6 +34,7 @@ import {
   useCancelBatchJobMutation,
   useGetBatchJobsQuery,
   useGetCoverageQuery,
+  useGetAvailableContentLanguagesQuery,
   useGetPacksQuery,
   useProcessBatchResultMutation,
   useStartBatchTranslationMutation,
@@ -57,6 +58,8 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export default function TranslationsPage() {
+  const {data: availableRes, refetch: refetchAvailability} = useGetAvailableContentLanguagesQuery(undefined, {pollingInterval: 15000});
+  const availableCodes = availableRes?.data.availableCodes ?? [];
   const {
     data: jobsRes,
     isError: jobsError,
@@ -185,17 +188,11 @@ export default function TranslationsPage() {
       hadithJob,
       duaJob,
       knowledgeJob,
-      isSource: code.toLowerCase() === "en",
+
     };
   };
 
   const openModalForLang = (langCode: string) => {
-    if (langCode.toLowerCase() === "en") {
-      toast.info(
-        "English is the primary source language and does not require translation.",
-      );
-      return;
-    }
     setSelectedLang(langCode);
     setConfirmRetranslate(false);
 
@@ -226,6 +223,7 @@ export default function TranslationsPage() {
     refetchJobs();
     refetchPacks();
     refetchCoverage();
+    refetchAvailability();
     toast.success("Synchronizing status with OpenAI & MongoDB...");
   };
 
@@ -250,6 +248,7 @@ export default function TranslationsPage() {
       setIsModalOpen(false);
       refetchJobs();
       refetchCoverage();
+    refetchAvailability();
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to start batch translation"));
     }
@@ -264,6 +263,7 @@ export default function TranslationsPage() {
       });
       refetchJobs();
       refetchCoverage();
+    refetchAvailability();
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to cancel batch job"), {
         id: "cancel-job",
@@ -283,6 +283,7 @@ export default function TranslationsPage() {
       );
       refetchJobs();
       refetchCoverage();
+    refetchAvailability();
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to process results"), {
         id: jobId,
@@ -623,7 +624,7 @@ export default function TranslationsPage() {
             <tbody className="divide-y divide-slate-100 text-sm">
               {filteredLanguages.map((lang) => {
                 const stats = getLangStats(lang.code);
-                const isEng = stats.isSource;
+
 
                 const hasActiveJob = [
                   stats.quranJob,
@@ -652,6 +653,7 @@ export default function TranslationsPage() {
                   >
                     <td className="py-3.5 px-5 font-semibold text-slate-900 whitespace-nowrap">
                       {lang.name}
+                      {availableCodes.includes(lang.code) && <Badge className="ml-2 text-[10px]">App ready</Badge>}
                     </td>
 
                     <td className="py-3.5 px-3">
@@ -662,9 +664,9 @@ export default function TranslationsPage() {
 
                     {/* QURAN */}
                     <td className="py-3.5 px-3">
-                      {isEng || stats.quranCount > 0 ? (
+                      {stats.quranCount > 0 ? (
                         <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                          ✓ Ready
+                          ✓ Data present
                         </span>
                       ) : (
                         <span className="text-[11px] text-slate-400">
@@ -675,9 +677,9 @@ export default function TranslationsPage() {
 
                     {/* TAFSIR */}
                     <td className="py-3.5 px-3">
-                      {isEng || stats.tafsirCount > 0 ? (
+                      {stats.tafsirCount > 0 ? (
                         <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                          ✓ Ready
+                          ✓ Data present
                         </span>
                       ) : (
                         <span className="text-[11px] text-slate-400">
@@ -688,9 +690,9 @@ export default function TranslationsPage() {
 
                     {/* HADITH */}
                     <td className="py-3.5 px-3">
-                      {isEng || stats.hadithCount > 0 ? (
+                      {stats.hadithCount > 0 ? (
                         <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                          ✓ Ready
+                          ✓ Data present
                         </span>
                       ) : stats.hadithJob?.status === "in_progress" ? (
                         <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">
@@ -705,9 +707,9 @@ export default function TranslationsPage() {
 
                     {/* DUA */}
                     <td className="py-3.5 px-3">
-                      {isEng || stats.duaCount > 0 ? (
+                      {stats.duaCount > 0 ? (
                         <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                          ✓ Ready
+                          ✓ Data present
                         </span>
                       ) : stats.duaJob?.status === "in_progress" ? (
                         <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">
@@ -722,9 +724,9 @@ export default function TranslationsPage() {
 
                     {/* KNOWLEDGE */}
                     <td className="py-3.5 px-3">
-                      {isEng || stats.knowledgeCount > 0 ? (
+                      {stats.knowledgeCount > 0 ? (
                         <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                          ✓ Ready
+                          ✓ Data present
                         </span>
                       ) : stats.knowledgeJob?.status === "in_progress" ? (
                         <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">
@@ -739,9 +741,9 @@ export default function TranslationsPage() {
 
                     {/* BOOKS */}
                     <td className="py-3.5 px-3">
-                      {isEng || stats.bookCount > 0 ? (
+                      {stats.bookCount > 0 ? (
                         <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                          ✓ Ready
+                          ✓ Data present
                         </span>
                       ) : stats.bookJob?.status === "in_progress" ? (
                         <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">
@@ -756,9 +758,9 @@ export default function TranslationsPage() {
 
                     {/* FATWAS */}
                     <td className="py-3.5 px-3">
-                      {isEng || stats.fatwaCount > 0 ? (
+                      {stats.fatwaCount > 0 ? (
                         <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                          ✓ Ready
+                          ✓ Data present
                         </span>
                       ) : stats.fatwaJob?.status === "in_progress" ? (
                         <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md animate-pulse">
@@ -773,11 +775,7 @@ export default function TranslationsPage() {
 
                     {/* ACTION COLUMN */}
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      {isEng ? (
-                        <span className="text-[11px] font-medium text-slate-400">
-                          Source
-                        </span>
-                      ) : hasActiveJob ? (
+                      {hasActiveJob ? (
                         <Badge className="bg-amber-100 text-amber-900 text-[11px] animate-pulse">
                           Translating...
                         </Badge>
@@ -831,9 +829,7 @@ export default function TranslationsPage() {
                   <SelectValue placeholder="Select Target Language" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl max-h-60">
-                  {APP_LANGUAGES.filter(
-                    (l) => l.code.toLowerCase() !== "en",
-                  ).map((lang) => {
+                  {APP_LANGUAGES.map((lang) => {
                     const lStats = getLangStats(lang.code);
                     const doneCount =
                       (lStats.quranCount > 0 ? 1 : 0) +
@@ -852,7 +848,7 @@ export default function TranslationsPage() {
                           </span>
                           {doneCount > 0 && (
                             <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">
-                              {doneCount}/7 Done
+                              {doneCount}/7 with data
                             </span>
                           )}
                         </div>
@@ -960,11 +956,11 @@ export default function TranslationsPage() {
                   <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold">
-                      {selectedModule.toUpperCase()} is already translated in
+                      {selectedModule.toUpperCase()} has existing data in
                       MongoDB ({selectedModuleCount} records)!
                     </p>
                     <p className="text-amber-700 text-[11px] mt-0.5">
-                      You do <strong>not</strong> need to translate it again.
+                      Existing records may include incomplete translations. Review content before replacing it.
                       Translating again will consume OpenAI tokens and overwrite
                       existing database records.
                     </p>

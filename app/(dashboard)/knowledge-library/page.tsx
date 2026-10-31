@@ -774,6 +774,7 @@ export default function KnowledgeLibraryPage() {
                             <span className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors flex items-center gap-1.5">
                               <BookOpen className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                               {book.title}
+                              {book.isContentAvailable === false && <Badge variant="destructive">Translation incomplete - hidden in app</Badge>}
                             </span>
                             <span className="text-xs text-slate-500 line-clamp-1 max-w-xl">
                               {stripHtml(book?.content).slice(0, 110)}...

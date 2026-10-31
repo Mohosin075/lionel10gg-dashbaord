@@ -263,7 +263,7 @@ export default function HadithPage() {
           </span>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400">Language:</span>
-            <Select value={selectedLang} onValueChange={setSelectedLang}>
+            <Select value={selectedLang} onValueChange={(value) => { setSelectedLang(value); setPage(1);  }}>
               <SelectTrigger className="w-36 h-8 text-xs rounded-lg">
                 <SelectValue />
               </SelectTrigger>
@@ -385,6 +385,7 @@ export default function HadithPage() {
                   <span className="font-mono text-xs font-bold px-2.5 py-1 bg-amber-100 text-amber-900 rounded-lg">
                     #{h.hadithNo}
                   </span>
+                  {!h.translation?.trim() && <Badge variant="destructive">Translation missing - hidden in app</Badge>}
                   {h.chapter && (
                     <span className="text-xs text-slate-500 font-medium line-clamp-1">
                       Chapter: {h.chapter}
