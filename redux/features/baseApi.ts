@@ -106,6 +106,7 @@ export const baseApi = createApi({
     "Hadith",
     "Dua",
     "AppConfig",
+    "PublicPolicy",
   ],
   endpoints: () => ({}),
 });

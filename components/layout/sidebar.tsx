@@ -19,6 +19,7 @@ import {
   ListOrdered,
   LogOut,
   Settings,
+  ShieldCheck,
   Users,
   Video,
 } from "lucide-react";
@@ -106,6 +107,13 @@ const navGroups: NavGroup[] = [
       },
       { title: "Reports & Analytics", href: "/reports", icon: BarChart2 },
       { title: "Push Notifications", href: "/notifications", icon: Bell },
+      {
+        title: "Public Policies",
+        href: "/policy-manager",
+        icon: ShieldCheck,
+        badge: "Store",
+        badgeColor: "bg-emerald-600",
+      },
     ],
   },
 ];
