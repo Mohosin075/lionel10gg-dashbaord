@@ -16,6 +16,9 @@ import {
   Database,
   Smartphone,
   Eye,
+  PenLine,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -28,11 +31,12 @@ import {
   PolicyDefinition,
   findPolicyDefinition,
 } from "@/lib/policyTemplates";
-import PolicyRichEditor from "@/components/policy/PolicyRichEditor";
+import PolicyRichEditor, { EditorMode } from "@/components/policy/PolicyRichEditor";
 
 export default function PoliciesDashboardPage() {
   const [selectedType, setSelectedType] = useState<string>("privacy-policy");
-  const [editorMode, setEditorMode] = useState<"split" | "visual" | "code">("split");
+  const [editorMode, setEditorMode] = useState<EditorMode>("visual");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<
     "all" | "mandatory" | "published" | "templates"
@@ -233,8 +237,9 @@ export default function PoliciesDashboardPage() {
       {/* Main Grid: Policy Navigator & Editor Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Filter & Policies List */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-4">
+        {!isSidebarCollapsed && (
+          <div className="lg:col-span-4 space-y-4">
+            <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-4">
             {/* Search Box */}
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -397,9 +402,14 @@ export default function PoliciesDashboardPage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Right Column: Dynamic Editor & Live Preview */}
-        <div className="lg:col-span-8 space-y-4">
+        <div
+          className={`${
+            isSidebarCollapsed ? "lg:col-span-12" : "lg:col-span-8"
+          } space-y-4 transition-all`}
+        >
           {/* Active Policy Header Card */}
           <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
@@ -431,6 +441,56 @@ export default function PoliciesDashboardPage() {
 
               {/* Status and Action Buttons */}
               <div className="flex items-center gap-2 self-start shrink-0">
+                {/* Full Width Preview Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditorMode(editorMode === "preview" ? "visual" : "preview")
+                  }
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+                    editorMode === "preview"
+                      ? "bg-emerald-900 text-white border-emerald-900 shadow-xs"
+                      : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200 shadow-xs"
+                  }`}
+                  title={
+                    editorMode === "preview"
+                      ? "Switch to Full-Width Editor"
+                      : "Switch to Full-Width Preview"
+                  }
+                >
+                  {editorMode === "preview" ? (
+                    <>
+                      <PenLine className="w-3.5 h-3.5" />
+                      <span>Edit Document</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Preview</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Collapse / Expand Policy List */}
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-xs transition hidden lg:flex items-center gap-1.5 cursor-pointer"
+                  title={isSidebarCollapsed ? "Show Policy Navigation" : "Full Screen Editor Workspace"}
+                >
+                  {isSidebarCollapsed ? (
+                    <>
+                      <PanelLeftOpen className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Show List</span>
+                    </>
+                  ) : (
+                    <>
+                      <PanelLeftClose className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Full Width</span>
+                    </>
+                  )}
+                </button>
+
                 <button
                   type="button"
                   onClick={handleResetToTemplate}
@@ -485,58 +545,16 @@ export default function PoliciesDashboardPage() {
 
           {/* Interactive Rich Text Editor Container */}
           <div className="space-y-4">
-            <div
-              className={`grid gap-4 ${
-                editorMode === "split"
-                  ? "grid-cols-1 xl:grid-cols-2"
-                  : "grid-cols-1"
-              }`}
-            >
-              {/* Rich WYSIWYG / Code Editor */}
-              <div className="flex flex-col space-y-2">
-                <PolicyRichEditor
-                  content={content}
-                  onChange={(newHtml) => {
-                    setContent(newHtml);
-                    setHasUnsavedChanges(true);
-                  }}
-                  editorMode={editorMode}
-                  onModeChange={(mode) => setEditorMode(mode)}
-                />
-              </div>
-
-              {/* Live Rendered Public Mirror (Shown in Split Mode) */}
-              {editorMode === "split" && (
-                <div className="flex flex-col space-y-2">
-                  <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs flex flex-col h-full min-h-[500px]">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                      <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                        <Eye className="w-3.5 h-3.5 text-emerald-700" />
-                        Live Store Preview Mirror
-                      </span>
-                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                        Synchronized
-                      </span>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto max-h-[520px] pr-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
-                      <div
-                        dangerouslySetInnerHTML={{ __html: content }}
-                        className="policy-mirror-preview space-y-3
-                        [&_h1]:text-xl [&_h1]:font-black [&_h1]:text-slate-900 [&_h1]:mb-3
-                        [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:pb-1.5 [&_h2]:border-b [&_h2]:border-slate-200
-                        [&_h3]:text-xs [&_h3]:font-bold [&_h3]:text-slate-800 [&_h3]:mt-4 [&_h3]:mb-1
-                        [&_p]:text-slate-600 [&_p]:mb-3
-                        [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ul]:mb-3 [&_ul]:text-slate-600
-                        [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_ol]:mb-3 [&_ol]:text-slate-600
-                        [&_blockquote]:border-l-4 [&_blockquote]:border-emerald-600 [&_blockquote]:bg-emerald-50/70 [&_blockquote]:p-3 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700 [&_blockquote]:italic
-                        [&_a]:text-emerald-700 [&_a]:underline"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <PolicyRichEditor
+              content={content}
+              onChange={(newHtml) => {
+                setContent(newHtml);
+                setHasUnsavedChanges(true);
+              }}
+              editorMode={editorMode}
+              onModeChange={(mode) => setEditorMode(mode)}
+              documentTitle={title || activeDefinition.title}
+            />
 
             {/* Bottom Actions Bar */}
             <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -559,6 +577,25 @@ export default function PoliciesDashboardPage() {
               </div>
 
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditorMode(editorMode === "preview" ? "visual" : "preview")
+                  }
+                  className="px-4 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  {editorMode === "preview" ? (
+                    <>
+                      <PenLine className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Back to Editor</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Full Preview</span>
+                    </>
+                  )}
+                </button>
                 <button
                   type="button"
                   onClick={() => window.open(publicUrl, "_blank")}
